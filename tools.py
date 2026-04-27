@@ -105,13 +105,13 @@ def get_tools():
             "type": "function",
             "function": {
                 "name": "escribir_texto",
-                "description": "Escribe texto en el editor activo.",
+                "description": "Escribe texto fluido (frases, nombres, correos, mensajes). Úsala SIEMPRE que necesites escribir algo largo de forma humana.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "texto": {
                             "type": "string",
-                            "description": "Texto a escribir"
+                            "description": "El texto completo a escribir."
                         }
                     },
                     "required": ["texto"]
@@ -122,7 +122,7 @@ def get_tools():
             "type": "function",
             "function": {
                 "name": "presionar_teclas",
-                "description": "Presiona las teclas del teclado para escribir texto comabinaciones de teclas etc todo lo que necesitas de un teclado",
+                "description": "Presiona combinaciones de teclas (ej: 'ctrl','c') o teclas especiales (ej: 'enter', 'win', 'backspace'). NO LA USES PARA ESCRIBIR FRASES.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -131,7 +131,7 @@ def get_tools():
                             "items": {
                                 "type": "string"
                             },
-                            "description": "Escribir texto o presionar teclas"
+                            "description": "Lista de teclas a presionar simultáneamente o en secuencia rápida. Ej: ['ctrl', 'alt', 'del'] o ['enter']."
                         }
                     },
                     "required": ["teclas"]
@@ -382,6 +382,23 @@ def get_tools():
                         }
                     },
                     "required": ["texto"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "activar_red_neuronal_autonoma",
+                "description": "Delega el control a la Red Neuronal (CNN + Imitation Learning) para que ejecute tareas de forma autónoma basándose en la visión, sin saturar el historial textual. Útil para tareas repetitivas o visuales como usar Spotify.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "objetivo": {
+                            "type": "string",
+                            "description": "El objetivo que la red neuronal debe cumplir (ej. 'Reproducir musica con dj livi en spotify')."
+                        }
+                    },
+                    "required": ["objetivo"]
                 }
             }
         }

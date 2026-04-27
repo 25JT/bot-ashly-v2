@@ -1,10 +1,18 @@
 {
-    "recompensas": 30,
+    "recompensas": 35,
     "conocimientos": [
         "Instrucciones Spotify: 1. Click en la lupa para buscar. 2. Escribir y Enter. 3. Para reproducir, poner el cursor sobre el elemento hasta que aparezca el botón PLAY (verde con negro) y clickearlo. 4. Controles inferiores: Botón 'Pausa' = Sonando, Botón 'Play' = Pausado. 5. Lado izquierdo de la pantalla: DJ Livi (bola azul/verde) algunas veces puede decir solo DJ, y Mis canciones que me gustan (corazón).",
-        "Búsqueda en Spotify: Para DJ Livi, el botón es una bola azul con fondo verde que dice \"DJ Click to start listening\" justo encima de KPOP. Hacer doble click para reproducir.",
+        "Búsqueda en Spotify: Para DJ Livi, el botón es una bola azul con fondo verde que dice \"DJ Click to start listening\" . Hacer doble click para reproducir.",
         "Controles de reproducción Spotify: A la derecha del botón de Play/Pausa está el botón de Siguiente. A la izquierda está el botón Anterior (hacer doble click para regresar la canción).",
         "Explorador de Archivos: Si el comando directo falla, es efectivo usar la visión para abrir el buscador de Windows, escribir 'explorador de archivos' y presionar enter.",
-        "En Spotify, las playlists principales (como DJ o Canciones que me gustan) siempre se encuentran en el panel del lado izquierdo de la pantalla."
+        "En Spotify, las playlists principales (como DJ o Canciones que me gustan) siempre se encuentran en el panel del lado izquierdo de la pantalla.",
+        "Para arrastrar una ventana, es necesario posicionar el cursor en la barra superior (donde está el título o controles) y realizar el arrastre desde allí.",
+        "Siempre validar que una tarea se completó (ej. verificar que una ventana se cerró realmente usando 'listar_ventanas_win32' o vision) antes de confirmarlo al usuario.",
+        "Microsoft Word: Usar ctrl+b para abrir el buscador y localizar texto rápidamente.",
+        "Microsoft Word: Al presionar Enter al final de una línea con viñeta, Word crea automáticamente la siguiente. No escribir símbolos de viñeta manualmente.",
+        "Eficiencia de Teclado: Usar 'escribir_texto' para frases y 'presionar_teclas' solo para atajos o teclas especiales.",
+        "Microsoft Excel: Para combinar y centrar celdas, seleccionar el rango arrastrando el mouse y luego clickear el botón 'Combinar y centrar'.",
+        "Microsoft Excel: Al trabajar con tablas, validar visualmente los formatos aplicados antes de dar la tarea por terminada.",
+        "Visión: El punto rojo con borde blanco en las capturas de pantalla indica la posición actual del mouse."
     ]
 }

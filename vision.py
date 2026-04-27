@@ -1,3 +1,4 @@
+import pyautogui
 import dxcam
 import cv2
 import base64
@@ -8,6 +9,15 @@ import time
 # Apunta al ejecutable de Tesseract (ajusta la ruta si es diferente)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
 # --- Variables globales ---
 camera = None
 _ultimo_frame_hash = None
@@ -16,14 +26,32 @@ _ultimo_resultado = (None, None)
 def get_camera():
     global camera
     if camera is None:
-        camera = dxcam.create()
+        camera = dxcam.create(output_color="BGR")
     return camera
 
 def capturar_pantalla():
-    """Captura el escritorio usando dxcam."""
+    """Captura el escritorio usando dxcam y dibuja el cursor del mouse."""
     try:
         cam = get_camera()
         frame = cam.grab()
+        
+        if frame is not None:
+            # Dibujar el cursor del mouse para que Ashly pueda verlo
+            try:
+                mx, my = pyautogui.position()
+                # Asegurarse de que el frame sea escribible
+                frame = frame.copy() 
+                h, w = frame.shape[:2]
+                if 0 <= mx < w and 0 <= my < h:
+                    # Dibujamos un círculo rojo con borde blanco para contraste
+                    cv2.circle(frame, (mx, my), 7, (255, 255, 255), -1) # Borde
+                    cv2.circle(frame, (mx, my), 5, (0, 0, 255), -1)   # Centro rojo
+            except Exception as e_cursor:
+                print(f"No se pudo dibujar el cursor: {e_cursor}")
+
+            # Guardar foto para debugging (opcional, pero útil para el usuario)
+            cv2.imwrite(f"frame_{int(time.time())}.jpg", frame)
+            
         return frame  # BGR o BGRA
     except Exception as e:
         print(f"Error en captura: {e}")
@@ -35,7 +63,7 @@ def _hash_frame(frame):
     small = cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA)
     return hash(small.tobytes())
 
-def preparar_vision_data(max_width=1280, forzar=False):
+def preparar_vision_data(max_width=1920, forzar=False):
     """
     Captura, OCR con Tesseract y prepara imagen en Base64.
     Si la pantalla no cambió y no se fuerza, devuelve el resultado cacheado.

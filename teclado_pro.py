@@ -22,7 +22,8 @@ def escribir_humanamente(texto, velocidad=None):
             if not es_especial:
                 try:
                     pyautogui.write(char)
-                    time.sleep(random.uniform(0.05, 0.15) * velocidad)
+                    # Delay humano para teclas normales
+                    time.sleep(random.uniform(0.1, 0.2) * (velocidad or 1.0))
                 except:
                     es_especial = True
             
@@ -30,7 +31,8 @@ def escribir_humanamente(texto, velocidad=None):
                 # Usamos portapapeles para caracteres especiales (acentos, emojis, etc.)
                 pyperclip.copy(char)
                 pyautogui.hotkey('ctrl', 'v')
-                time.sleep(random.uniform(0.05, 0.15) * velocidad)
+                # Retardo mínimo para que el sistema procese el pegado antes de la siguiente letra
+                time.sleep(0.05)
 
 def presionar_combinacion(teclas):
     """Presiona una combinación de teclas (ej: ['ctrl', 'c'] o ['win', 'e'])."""

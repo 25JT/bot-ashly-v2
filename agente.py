@@ -29,11 +29,22 @@ OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview") # modelo Ol
 OLLAMA_HOST    = "https://ollama.com"                 # host oficial del SDK
 
 # ── Resolución de pantalla y escalado de visión ────────────────────────────
-SCREEN_W  = 1920   # ancho real del monitor
-SCREEN_H  = 1080   # alto real del monitor
-VISION_W  = 1280   # ancho de la imagen que ve el modelo (vision.py max_width)
-SCREEN_SCALE_X = SCREEN_W / VISION_W                    # = 1.5
-SCREEN_SCALE_Y = SCREEN_H / (SCREEN_H * VISION_W / SCREEN_W)  # = 1.5
+import ctypes
+try:
+    # Intentar establecer conciencia de DPI para evitar problemas de escalado en Windows
+    ctypes.windll.shcore.SetProcessDpiAwareness(1) # PROCESS_SYSTEM_DPI_AWARE
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
+user32 = ctypes.windll.user32
+SCREEN_W = user32.GetSystemMetrics(0)   # Ancho real del monitor
+SCREEN_H = user32.GetSystemMetrics(1)   # Alto real del monitor
+VISION_W = SCREEN_W                     # Usar resolución nativa para máxima precisión
+# Factor de escala (ahora debería ser 1.0 si es nativo)
+SCALE_FACTOR = SCREEN_W / VISION_W
 
 class Agent:
     def __init__(self):
@@ -55,13 +66,21 @@ class Agent:
         base_prompt += "siempre intentas llegar a cumplir el objetivo usando las herramientas que tienes a tu disposicion'.\n"
         base_prompt += "Persistencia: Tu historial y memoria se guardan automáticamente en archivos JSON.\n"
         base_prompt += "IMPORTANTE: NO INVENTES ACCIONES O COSAS QUE NO EXISTEN O NO CONOCES.\n"
-        base_prompt += "La imagen que ves mide 1280x720 px. USA LAS COORDENADAS DE LA IMAGEN TAL CUAL — el sistema escala automáticamente a la pantalla real.\n"
-        base_prompt += "Usar las herramientas correctas para cada tarea. Si una acción no produce cambios en la pantalla, NO LA REPITAS idéntica, intenta algo diferente.\n"
-        base_prompt += "IMPORTANTE: Para escribir nombres, frases o texto largo usa 'escribir_texto'. 'presionar_teclas' es SOLO para teclas individuales o atajos (ctrl, alt, win, enter, etc).\n"
+        
+        # Calcular altura de visión para el prompt
+        vision_h = int(VISION_W * SCREEN_H / SCREEN_W)
+        base_prompt += f"La imagen que ves es una captura NATIVA a {VISION_W}x{vision_h} px. Las coordenadas coinciden 1:1 con la pantalla real.\n"
+        base_prompt += "!!! REGLA DE ORO DEL TECLADO (CRÍTICO) !!!\n"
+        base_prompt += "- NUNCA uses 'presionar_teclas' para escribir frases o palabras letra por letra. Es ineficiente y falla.\n"
+        base_prompt += "- Para CUALQUIER texto (nombres, frases, búsquedas, mensajes), usa SIEMPRE 'escribir_texto'.\n"
+        base_prompt += "- 'presionar_teclas' es SOLO para atajos (ctrl+c) o teclas especiales (enter, esc, win).\n"
+        base_prompt += "Usa las herramientas correctas para cada tarea. Si una acción no produce cambios en la pantalla, NO LA REPITAS idéntica, intenta algo diferente.\n"
         base_prompt += "Puedes usar el mouse para clickear, arrastrar, hacer scroll y mover la ventana.\n"
         base_prompt += "Puedes usar el teclado para escribir, presionar teclas y atajos de teclado.\n"
         base_prompt += "No repitas las mismas acciones. Sé creativo y eficiente.\n"
         base_prompt += "VISIÓN: Por defecto NO ves la pantalla. Si el usuario te pide realizar una tarea en el PC, DEBES usar la herramienta 'ver_escritorio' primero para obtener el contexto visual. Si solo es una charla o pregunta general, no es necesario que mires.\n"
+        base_prompt += "RECUERDA NO ESTAS EN UN CHAT NORMAL ESTAS USANDO HERRAMIENTAS PARA RESOLVER TAREAS EN LA COMPUTADORA.\n"
+        base_prompt += "Hora tienes una memoria que puedes consultar y una red neuronal que te ayudara a aprender.\n"
 
         if self.memoria_interna:
             base_prompt += "\n--- CONOCIMIENTOS ADQUIRIDOS ---\n"
@@ -77,27 +96,28 @@ class Agent:
     def _escalar_coords(self, x, y):
         """
         Convierte coordenadas del espacio de la imagen (1280px ancho)
-        al espacio real de la pantalla (1920x1080).
-        El modelo da coords en px de la imagen; multiplicamos por el factor de escala.
+        al espacio real de la pantalla usando un factor de escala único.
         """
         if x is None or y is None:
             return x, y
-        rx = int(round(float(x) * SCREEN_SCALE_X))
-        ry = int(round(float(y) * SCREEN_SCALE_Y))
-        # Clamp a límites de pantalla para evitar coordenadas fuera de rango
+        
+        rx = int(round(float(x) * SCALE_FACTOR))
+        ry = int(round(float(y) * SCALE_FACTOR))
+        
+        # Clamp a límites de pantalla
         rx = max(0, min(rx, SCREEN_W - 1))
         ry = max(0, min(ry, SCREEN_H - 1))
         return rx, ry
 
     def _desescalar_coords(self, x, y):
         """
-        Convierte coordenadas reales de pantalla (1920x1080)
-        al espacio de la imagen que ve el modelo (1280px ancho).
+        Convierte coordenadas reales de pantalla al espacio de la imagen 
+        que ve el modelo usando el factor de escala unificado.
         """
         if x is None or y is None:
             return x, y
-        ix = int(round(float(x) / SCREEN_SCALE_X))
-        iy = int(round(float(y) / SCREEN_SCALE_Y))
+        ix = int(round(float(x) / SCALE_FACTOR))
+        iy = int(round(float(y) / SCALE_FACTOR))
         return ix, iy
 
     def get_backend(self):
@@ -272,8 +292,8 @@ class Agent:
 
     def generate_response(self, steps=0):
         """Genera una respuesta usando el modelo activo y procesa las herramientas."""
-        if steps > 20:
-            return "⚠️ Ashly se detuvo para evitar un bucle infinito de herramientas."
+        if steps > 100:
+            return "⚠️ Ashly se detuvo tras 100 pasos para evitar un consumo excesivo de recursos."
             
         backend, model = self.get_backend()
         if not model:
@@ -384,6 +404,8 @@ class Agent:
                             resultado = entorno.leer_portapapeles()
                         elif function_name == "escribir_portapapeles":
                             resultado = entorno.escribir_portapapeles(**arguments)
+                        elif function_name == "activar_red_neuronal_autonoma":
+                            resultado = self.ejecutar_red_neuronal(**arguments)
                         else:
                             resultado = f"Error: herramienta '{function_name}' no encontrada"
                             
@@ -409,7 +431,7 @@ class Agent:
         """Captura la pantalla y actualiza el contexto visual para la IA."""
         try:
             print("👀 Ashly está mirando la pantalla...")
-            texto_ocr, img_b64 = vision.preparar_vision_data()
+            texto_ocr, img_b64 = vision.preparar_vision_data(max_width=VISION_W)
             
             # Limpiamos el historial de mensajes de visión anteriores para no saturar
             # Mantenemos solo las últimas 3 visiones para dar continuidad visual
@@ -457,6 +479,82 @@ class Agent:
     def guardar_estado(self):
         """Helper para llamar al storage manager."""
         self.storage.guardar_completamente(self.mensajes, self.memoria_interna, self.recompensas)
+
+    def ejecutar_red_neuronal(self, objetivo):
+        """Activa el modo autónomo usando la CNN y la red neuronal preentrenada."""
+        import os
+        import torch
+        import time
+        from neural_agent import AshlyNeuralNet
+        from cnn_vision import VisionEncoder
+        import vision
+        import movermouse
+        from pynput import keyboard
+
+        ruta_modelo = "ashly_neural_brain.pth"
+        if not os.path.exists(ruta_modelo):
+            return f"❌ Error: No se encontró el cerebro neuronal '{ruta_modelo}'. Primero usa 'user_tracker.py' para grabar y 'neural_memory.py' para entrenar."
+
+        print(f"\n🧠 [MODO NEURONAL ACTIVADO] Objetivo: {objetivo}")
+        print("🔴 Presiona ESC en cualquier momento para detener la red neuronal y devolverle el control al LLM.")
+
+        encoder = VisionEncoder()
+        agent = AshlyNeuralNet()
+        try:
+            agent.load_state_dict(torch.load(ruta_modelo, weights_only=True))
+        except Exception as e:
+            return f"Error al cargar la red neuronal: {e}"
+        agent.eval()
+
+        mouse_op = movermouse.MouseOperator()
+        abortar = False
+
+        def on_press(key):
+            nonlocal abortar
+            if key == keyboard.Key.esc:
+                print("\n[!] Abortando modo neuronal por orden del usuario (ESC)...")
+                abortar = True
+                return False
+
+        listener = keyboard.Listener(on_press=on_press)
+        listener.start()
+
+        pasos = 0
+        while not abortar and pasos < 30:
+            pasos += 1
+            print(f"   [Iteración {pasos}] Red Neuronal analizando pantalla...")
+            
+            frame = vision.capturar_pantalla()
+            if frame is None:
+                print("   Error capturando pantalla.")
+                break
+                
+            try:
+                vector_visual = encoder.procesar_imagen_cv2(frame)
+                action_id, nx, ny = agent.predecir_accion(vector_visual)
+                
+                if action_id == 0:
+                    print("   🧠 Decisión: Esperar.")
+                elif action_id == 1:
+                    import ctypes
+                    user32 = ctypes.windll.user32
+                    sw, sh = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+                    
+                    real_x = int(nx * sw)
+                    real_y = int(ny * sh)
+                    print(f"   🧠 Decisión: Clic en ({real_x}, {real_y}) [Normalizado: {nx:.3f}, {ny:.3f}].")
+                    mouse_op.smooth_move((real_x, real_y))
+                    mouse_op.left_click()
+                elif action_id == 2:
+                    print("   🧠 Decisión: Usar Teclado (Acción general detectada).")
+                
+                time.sleep(2.0)
+            except Exception as e:
+                print(f"   Error en ejecución neuronal: {e}")
+                break
+                
+        listener.stop()
+        return f"Modo neuronal finalizado tras {pasos} iteraciones."
 
     def run(self):
         print(f"Iniciando Ashly v2. Experiencia actual: {self.recompensas} puntos.")

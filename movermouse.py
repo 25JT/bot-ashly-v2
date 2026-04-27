@@ -19,11 +19,18 @@ class MouseOperator:
 
         path = []
         for i in range(len(x_pts)):
-            deviation_x = random.uniform(-offset, offset) * (i / points) * (1 - i / points)
-            deviation_y = random.uniform(-offset, offset) * (i / points) * (1 - i / points)
+            # La desviación es cero en el primer y último punto (i=0 y i=points-1)
+            # Usamos (i / (points-1)) para normalizar de 0 a 1
+            t = i / (points - 1) if points > 1 else 1
+            multiplier = t * (1 - t)
+            
+            deviation_x = random.uniform(-offset, offset) * multiplier
+            deviation_y = random.uniform(-offset, offset) * multiplier
 
             path.append((x_pts[i] + deviation_x, y_pts[i] + deviation_y))
 
+        # Asegurar que el último punto sea exactamente el objetivo
+        path[-1] = end
         return path
 
     def smooth_move(self, target: Tuple[int, int], duration: float = None, speed: float = 1.0):
