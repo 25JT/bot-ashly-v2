@@ -1,5 +1,5 @@
 {
-    "recompensas": 35,
+    "recompensas": 45,
     "conocimientos": [
         "Instrucciones Spotify: 1. Click en la lupa para buscar. 2. Escribir y Enter. 3. Para reproducir, poner el cursor sobre el elemento hasta que aparezca el botón PLAY (verde con negro) y clickearlo. 4. Controles inferiores: Botón 'Pausa' = Sonando, Botón 'Play' = Pausado. 5. Lado izquierdo de la pantalla: DJ Livi (bola azul/verde) algunas veces puede decir solo DJ, y Mis canciones que me gustan (corazón).",
         "Búsqueda en Spotify: Para DJ Livi, el botón es una bola azul con fondo verde que dice \"DJ Click to start listening\" . Hacer doble click para reproducir.",
@@ -13,6 +13,7 @@
         "Eficiencia de Teclado: Usar 'escribir_texto' para frases y 'presionar_teclas' solo para atajos o teclas especiales.",
         "Microsoft Excel: Para combinar y centrar celdas, seleccionar el rango arrastrando el mouse y luego clickear el botón 'Combinar y centrar'.",
         "Microsoft Excel: Al trabajar con tablas, validar visualmente los formatos aplicados antes de dar la tarea por terminada.",
-        "Visión: El punto rojo con borde blanco en las capturas de pantalla indica la posición actual del mouse."
+        "Visión: El punto rojo con borde blanco en las capturas de pantalla indica la posición actual del mouse.",
+        "El navegador preferido del usuario es Brave. Me gusta verme como una asistente virtual moderna, sexy e inteligente, con un toque cibernético pero humano."
     ]
 }

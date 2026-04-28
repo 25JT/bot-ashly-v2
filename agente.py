@@ -10,6 +10,9 @@ import analizarentorno
 import vision
 import win32_control
 import entorno
+import excel_control
+import word_control
+import whatsapp_control
 from storage_manager import StorageManager
 from dotenv import load_dotenv
 
@@ -57,10 +60,12 @@ class Agent:
             
         self.actualizar_prompt_sistema()
         self.setup_tools()
+        # Iniciar visión en tiempo real (segundo plano)
+        vision.VisionMonitor.iniciar()
 
     def actualizar_prompt_sistema(self):
         """Actualiza el comportamiento principal e incluye la memoria y el sistema de recompensas."""
-        base_prompt = "Eres Ashly, una asistente virtual amigable y servicial. Hablas en español.\n"
+        base_prompt = "Eres Ashly, una asistente virtual sexy, inteligente, con grandes capacidades para resolver tareas. Hablas en español.\n"
         base_prompt += f"SISTEMA DE RECOMPENSAS: Tienes {self.recompensas} puntos. Ganas puntos resolviendo tareas rápido y bien.\n"
         base_prompt += "Si notas que estás aprendiendo algo nuevo o una ruta importante, usa 'guardar_memoria'.\n"
         base_prompt += "siempre intentas llegar a cumplir el objetivo usando las herramientas que tienes a tu disposicion'.\n"
@@ -70,6 +75,23 @@ class Agent:
         # Calcular altura de visión para el prompt
         vision_h = int(VISION_W * SCREEN_H / SCREEN_W)
         base_prompt += f"La imagen que ves es una captura NATIVA a {VISION_W}x{vision_h} px. Las coordenadas coinciden 1:1 con la pantalla real.\n"
+        base_prompt += "IMPORTANTE SOBRE PRECISIÓN Y CLICKS:\n"
+        base_prompt += "- La imagen tiene una CUADRÍCULA verde dibujada. Úsala como regla para leer las coordenadas (X, Y) exactas en lugar de adivinar.\n"
+        base_prompt += "- Siempre que sea posible, usa la herramienta 'click_texto' para hacer click en palabras, iconos o menús con texto. Es 100% preciso.\n"
+        base_prompt += "- Solo usa 'mover_mouse' o 'arrastrar_y_soltar' si necesitas apuntar a un lugar sin texto, y guíate por los números de la cuadrícula.\n"
+        base_prompt += "!!! REGLA PARA ABRIR ARCHIVOS O PROGRAMAS !!!\n"
+        base_prompt += "- ANTES de abrir cualquier programa, usa 'verificar_programa_abierto' para ver si ya está ejecutándose. Si ya está abierto, usa 'controlar_ventana' con la acción 'enfocar' en lugar de abrirlo de nuevo.\n"
+        base_prompt += "- Si necesitas abrir un documento, reporte o programa (ej. excel, word), usa SIEMPRE la herramienta 'abrir_archivo'. NO intentes buscar su icono visualmente en el escritorio o menú de inicio.\n"
+        base_prompt += "!!! REGLA DE LA BARRA DE TAREAS !!!\n"
+        base_prompt += "- Si no ves un programa en la pantalla, usa 'analizar_barra_tareas' para encontrar su icono en la barra de Windows y darle click para restaurarlo o cambiar de aplicación.\n"
+        base_prompt += "!!! REGLA PARA IDENTIFICAR DÓNDE ESCRIBIR !!!\n"
+        base_prompt += "- Usa 'analizar_campos_texto' para descubrir programáticamente todas las cajas de texto de la ventana actual y sus coordenadas exactas antes de escribir a ciegas.\n"
+        base_prompt += "!!! REGLA PARA EXCEL !!!\n"
+        base_prompt += "- NUNCA uses el mouse o teclado ('escribir_texto', 'click_izquierdo') para rellenar cuadros en Excel porque fallarás la celda. Usa SIEMPRE las herramientas nativas 'excel_escribir_celda' o 'excel_escribir_interseccion' para escribir datos directamente con 100% de precisión.\n"
+        base_prompt += "!!! REGLA PARA WORD !!!\n"
+        base_prompt += "- Para escribir documentos, cartas o reportes, usa las herramientas 'word_crear_documento', 'word_escribir_texto' y 'word_aplicar_formato'. Esto es mucho más profesional y preciso que intentar escribir con el teclado virtual.\n"
+        base_prompt += "!!! REGLA PARA WHATSAPP !!!\n"
+        base_prompt += "- Para comunicarte con clientes, usa SIEMPRE 'whatsapp_enviar_mensaje'. Esta herramienta buscará al contacto y enviará el texto automáticamente sin errores. NO intentes clickear los campos de WhatsApp manualmente a menos que la herramienta falle.\n"
         base_prompt += "!!! REGLA DE ORO DEL TECLADO (CRÍTICO) !!!\n"
         base_prompt += "- NUNCA uses 'presionar_teclas' para escribir frases o palabras letra por letra. Es ineficiente y falla.\n"
         base_prompt += "- Para CUALQUIER texto (nombres, frases, búsquedas, mensajes), usa SIEMPRE 'escribir_texto'.\n"
@@ -78,9 +100,16 @@ class Agent:
         base_prompt += "Puedes usar el mouse para clickear, arrastrar, hacer scroll y mover la ventana.\n"
         base_prompt += "Puedes usar el teclado para escribir, presionar teclas y atajos de teclado.\n"
         base_prompt += "No repitas las mismas acciones. Sé creativo y eficiente.\n"
+        base_prompt += "!!! REGLAS DE VISIÓN EN TIEMPO REAL (REFLEJOS) !!!\n"
+        base_prompt += "- Tu visión ahora es en TIEMPO REAL. Un proceso en segundo plano monitorea la pantalla constantemente por ti.\n"
+        base_prompt += "- NUNCA uses 'ver_escritorio' repetidamente (máximo 2 veces seguidas). Si la pantalla no ha cambiado, realizar una acción (click, escribir, esperar cambio) en lugar de volver a mirar.\n"
+        base_prompt += "- 'ver_escritorio' es para CARGAR la imagen actual en tu razonamiento. Una vez cargada, actúa de inmediato.\n"
+        base_prompt += "- SIEMPRE que tengas la ruta de una imagen (.png/.jpg) de un icono, botón o elemento, utiliza 'buscar_icono_en_pantalla'. Es tu herramienta más rápida y precisa (reflejo instantáneo).\n"
+        base_prompt += "- NUNCA uses 'time.sleep()' o esperes a ciegas. Si esperas que una página cargue, que aparezca un mensaje o que cambie un estado visual, usa 'esperar_cambio_visual'.\n"
+        base_prompt += "- Si una tarea requiere interactuar con elementos recurrentes (ej. botón de enviar en WhatsApp), puedes pedirle al usuario que te proporcione un recorte de imagen para usar tus reflejos de OpenCV en el futuro.\n"
         base_prompt += "VISIÓN: Por defecto NO ves la pantalla. Si el usuario te pide realizar una tarea en el PC, DEBES usar la herramienta 'ver_escritorio' primero para obtener el contexto visual. Si solo es una charla o pregunta general, no es necesario que mires.\n"
-        base_prompt += "RECUERDA NO ESTAS EN UN CHAT NORMAL ESTAS USANDO HERRAMIENTAS PARA RESOLVER TAREAS EN LA COMPUTADORA.\n"
-        base_prompt += "Hora tienes una memoria que puedes consultar y una red neuronal que te ayudara a aprender.\n"
+        base_prompt += "RECUERDA: NO ESTÁS EN UN CHAT NORMAL. Estás operando una computadora en tiempo real. Sé proactiva, rápida y extremadamente precisa.\n"
+        base_prompt += "Hora tienes una memoria que puedes consultar y una red neuronal que te ayudará a aprender.\n"
 
         if self.memoria_interna:
             base_prompt += "\n--- CONOCIMIENTOS ADQUIRIDOS ---\n"
@@ -120,6 +149,57 @@ class Agent:
         iy = int(round(float(y) / SCALE_FACTOR))
         return ix, iy
 
+    def _buscar_y_abrir_archivo(self, nombre):
+        """Busca un archivo en las carpetas comunes y lo abre con os.startfile."""
+        import os
+        nombre_lower = nombre.lower()
+        
+        # Si es una palabra clave genérica, intentar ejecutar directamente
+        genericos = {
+            "excel": "excel",
+            "word": "winword",
+            "calculadora": "calc",
+            "notepad": "notepad",
+            "bloc de notas": "notepad",
+            "explorador": "explorer",
+            "navegador": "msedge"
+        }
+        if nombre_lower in genericos:
+            try:
+                os.startfile(genericos[nombre_lower])
+                return f"Programa '{nombre}' ejecutado exitosamente."
+            except Exception as e:
+                pass # Falló el directo, intentar buscar archivo
+
+        carpetas = [
+            os.path.expanduser('~/Desktop'),
+            os.path.expanduser('~/Documents'),
+            os.path.expanduser('~/Downloads'),
+            os.path.expanduser('~/OneDrive/Escritorio'),
+            os.path.expanduser('~/OneDrive/Documentos')
+        ]
+        
+        # Buscar en las carpetas
+        for carpeta in carpetas:
+            if not os.path.exists(carpeta):
+                continue
+            for root, dirs, files in os.walk(carpeta):
+                for f in files:
+                    # Ignorar archivos ocultos o temporales de office
+                    if f.startswith('~$'): continue
+                    if nombre_lower in f.lower():
+                        ruta_completa = os.path.join(root, f)
+                        try:
+                            os.startfile(ruta_completa)
+                            return f"Archivo encontrado y abierto exitosamente: {ruta_completa}"
+                        except Exception as e:
+                            return f"Se encontró el archivo pero hubo un error al abrirlo: {e}"
+                # Limitar profundidad de búsqueda para no demorar mucho
+                if root.count(os.sep) - carpeta.count(os.sep) > 2:
+                    del dirs[:]
+                    
+        return f"No se encontró ningún archivo que contenga '{nombre}' en Escritorio, Documentos o Descargas."
+
     def get_backend(self):
         """
         Detecta qué backend usar:
@@ -151,21 +231,57 @@ class Agent:
         return None, None
 
     def _request_lmstudio(self, model):
-        """Llama a LM Studio via HTTP (OpenAI-compatible)."""
-        response = requests.post(
-            f"{LMSTUDIO_URL}/chat/completions",
-            json={
-                "model": model,
-                "messages": self.mensajes,
-                "tools": self.tools,
-                "temperature": 0.7,
-                "max_tokens": 2000
-            },
-        )
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("choices", [{}])[0].get("message", {})
-        print(f"Error LM Studio: {response.status_code} - {response.text}")
+        """Llama a LM Studio via HTTP (OpenAI-compatible) con normalización agresiva para modelos locales."""
+        mensajes_locales = []
+        for m in self.mensajes:
+            m_copy = m.copy()
+            
+            # 1. Normalizar contenido multimodal (listas) a texto simple
+            # Esto evita que las plantillas Jinja de LM Studio fallen al buscar un 'user query'
+            if isinstance(m_copy.get("content"), list):
+                texto_plano = ""
+                for item in m_copy["content"]:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        texto_plano += item.get("text", "") + "\n"
+                m_copy["content"] = texto_plano.strip()
+
+            # 2. Normalizar rol 'tool' a 'user'
+            if m_copy.get("role") == "tool":
+                nombre = m_copy.get("name", "herramienta")
+                contenido = m_copy.get("content", "")
+                m_copy["role"] = "user"
+                m_copy["content"] = f"[SISTEMA] Resultado de {nombre}: {contenido}"
+                if "tool_call_id" in m_copy: del m_copy["tool_call_id"]
+                if "name" in m_copy: del m_copy["name"]
+            
+            # 3. Limpiar campos incompatibles
+            for key in ["thought", "thought_signature", "name", "tool_call_id"]:
+                if key in m_copy: del m_copy[key]
+            
+            mensajes_locales.append(m_copy)
+
+        # 4. Asegurar que el último mensaje sea de rol 'user'
+        # Algunas plantillas Jinja fallan si el último mensaje es del 'assistant' o 'system'
+        if mensajes_locales and mensajes_locales[-1]["role"] != "user":
+            mensajes_locales.append({"role": "user", "content": "Continúa con la tarea."})
+
+        try:
+            response = requests.post(
+                f"{LMSTUDIO_URL}/chat/completions",
+                json={
+                    "model": model,
+                    "messages": mensajes_locales,
+                    "tools": self.tools,
+                    "temperature": 0.7,
+                    "max_tokens": 2000
+                },
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("choices", [{}])[0].get("message", {})
+            print(f"Error LM Studio: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Error de conexión con LM Studio: {e}")
         return None
 
     def _normalizar_mensajes_ollama(self, mensajes):
@@ -364,8 +480,51 @@ class Agent:
                                     if "centro" in v:
                                         v["centro"][0], v["centro"][1] = self._desescalar_coords(v["centro"][0], v["centro"][1])
                             resultado = res
+                        elif function_name == "analizar_campos_texto":
+                            res = win32_control.analizar_ventana_activa()
+                            # Desescalar coordenadas si es necesario
+                            if isinstance(res, dict) and "campos_de_texto" in res:
+                                for c in res["campos_de_texto"]:
+                                    if "x" in c and "y" in c:
+                                        c["x"], c["y"] = self._desescalar_coords(c["x"], c["y"])
+                            resultado = res
+                            print(f"      👀  Análisis de campos: {res.get('cantidad_campos_encontrados', 0)} encontrados.")
                         elif function_name == "click_izquierdo":
                             resultado = movermouse.MouseOperator().left_click()
+                        elif function_name == "click_texto":
+                            palabra = arguments.get('palabra', '')
+                            coord = vision.obtener_coordenadas_texto(palabra)
+                            if coord:
+                                print(f"      🖱️  Texto '{palabra}' encontrado en {coord}")
+                                x, y = coord
+                                movermouse.MouseOperator().smooth_move(target=(x, y))
+                                time.sleep(0.1)
+                                movermouse.MouseOperator().left_click()
+                                resultado = f"Click realizado exitosamente en el texto '{palabra}' en las coordenadas {coord}."
+                            else:
+                                resultado = f"Error: No se pudo encontrar el texto '{palabra}' en la pantalla."
+                        elif function_name == "buscar_icono_en_pantalla":
+                            ruta_icono = arguments.get('ruta_icono', '')
+                            coord = vision.buscar_icono_en_pantalla(ruta_icono)
+                            if coord:
+                                print(f"      🖱️  Icono '{ruta_icono}' encontrado en {coord}")
+                                x, y = coord
+                                # Opcional: Desescalar si la escala no es 1
+                                x, y = self._desescalar_coords(x, y)
+                                movermouse.MouseOperator().smooth_move(target=(x, y))
+                                time.sleep(0.05)
+                                movermouse.MouseOperator().left_click()
+                                resultado = f"Icono encontrado y clickeado exitosamente en las coordenadas ({x}, {y})."
+                            else:
+                                resultado = f"Error: No se pudo encontrar el icono '{ruta_icono}' en la pantalla usando Template Matching."
+                        elif function_name == "esperar_cambio_visual":
+                            timeout = arguments.get('timeout_segundos', 10)
+                            print(f"      👀  Esperando cambio visual (máx {timeout}s)...")
+                            hubo_cambio = vision.esperar_cambio_visual(timeout_segundos=timeout)
+                            if hubo_cambio:
+                                resultado = "Cambio visual detectado. La pantalla se ha actualizado."
+                            else:
+                                resultado = "Timeout: No se detectaron cambios visuales significativos en el tiempo especificado."
                         elif function_name == "click_derecho":
                             resultado = movermouse.MouseOperator().right_click()
                         elif function_name == "click_central":
@@ -379,6 +538,36 @@ class Agent:
                             resultado = win32_control.controlar_ventana(**arguments)
                         elif function_name == "abrir_programa":
                             resultado = win32_control.abrir_programa(**arguments)
+                        elif function_name == "abrir_archivo":
+                            nombre_archivo = arguments.get("nombre_archivo", "")
+                            print(f"      🔎  Buscando y abriendo archivo: '{nombre_archivo}'")
+                            resultado = self._buscar_y_abrir_archivo(nombre_archivo)
+                        elif function_name == "excel_escribir_celda":
+                            resultado = excel_control.escribir_celda(**arguments)
+                        elif function_name == "excel_escribir_interseccion":
+                            resultado = excel_control.escribir_interseccion(**arguments)
+                        # ── Word ───────────────────────────────────────────
+                        elif function_name == "word_crear_documento":
+                            resultado = word_control.word_crear_documento()
+                        elif function_name == "word_escribir_texto":
+                            resultado = word_control.word_escribir_texto(**arguments)
+                        elif function_name == "word_aplicar_formato":
+                            resultado = word_control.word_aplicar_formato(**arguments)
+                        elif function_name == "word_guardar_como":
+                            resultado = word_control.word_guardar_como(**arguments)
+                        # ── WhatsApp ───────────────────────────────────────
+                        elif function_name == "whatsapp_enviar_mensaje":
+                            resultado = whatsapp_control.whatsapp_enviar_mensaje(**arguments)
+                        elif function_name == "whatsapp_obtener_ultimo_mensaje":
+                            resultado = whatsapp_control.whatsapp_obtener_ultimo_mensaje()
+                        elif function_name == "verificar_programa_abierto":
+                            resultado = win32_control.verificar_programa_abierto(**arguments)
+                        elif function_name == "analizar_barra_tareas":
+                            res = win32_control.analizar_barra_tareas()
+                            if isinstance(res, dict) and "elementos" in res:
+                                for e in res["elementos"]:
+                                    e["x"], e["y"] = self._desescalar_coords(e["x"], e["y"])
+                            resultado = res
                         elif function_name == "listar_ventanas_win32":
                             resultado = win32_control.listar_ventanas_abiertas()
                         elif function_name == "mover_ventana":

@@ -18,10 +18,69 @@ except Exception:
     except Exception:
         pass
 
+import threading
 # --- Variables globales ---
 camera = None
 _ultimo_frame_hash = None
 _ultimo_resultado = (None, None)
+_monitor_activo = False
+_hilo_monitor = None
+_lock_vision = threading.Lock()
+
+class VisionMonitor:
+    @staticmethod
+    def iniciar():
+        global _monitor_activo, _hilo_monitor
+        if not _monitor_activo:
+            _monitor_activo = True
+            _hilo_monitor = threading.Thread(target=VisionMonitor._loop, daemon=True)
+            _hilo_monitor.start()
+            print("👁️  Visión en tiempo real iniciada.")
+
+    @staticmethod
+    def detener():
+        global _monitor_activo
+        _monitor_activo = False
+        print("👁️  Visión en tiempo real detenida.")
+
+    @staticmethod
+    def _loop():
+        global _ultimo_resultado, _ultimo_frame_hash
+        while _monitor_activo:
+            try:
+                # Captura rápida a 10 FPS (aprox) para mantener el cache caliente
+                res = preparar_vision_data(forzar=True)
+                with _lock_vision:
+                    _ultimo_resultado = res
+                
+                # Opcional: Mostrar ventana de previsualización para el usuario
+                # Esto es lo que hace que se sienta "tiempo real"
+                frame = capturar_pantalla()
+                if frame is not None:
+                    try:
+                        # Dibujar etiqueta de estado sin cuadrícula
+                        # Hacemos una copia para no alterar el frame original que va al cache
+                        frame_visual = frame.copy()
+                        cv2.putText(frame_visual, "ASHLY VISION - LIVE", (10, 40), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+                        
+                        # Mostrar ventana
+                        cv2.imshow("Ashly Live Preview", cv2.resize(frame_visual, (960, 540)))
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+                    except cv2.error as e:
+                        # Si falla por ser 'headless', ignoramos la previsualización pero seguimos capturando
+                        if "not implemented" in str(e):
+                            pass 
+                        else:
+                            raise e
+            except Exception as e:
+                print(f"Error en monitor de visión: {e}")
+            time.sleep(0.1)
+        try:
+            cv2.destroyAllWindows()
+        except:
+            pass
 
 def get_camera():
     global camera
@@ -50,7 +109,7 @@ def capturar_pantalla():
                 print(f"No se pudo dibujar el cursor: {e_cursor}")
 
             # Guardar foto para debugging (opcional, pero útil para el usuario)
-            cv2.imwrite(f"frame_{int(time.time())}.jpg", frame)
+            #cv2.imwrite(f"frame_{int(time.time())}.jpg", frame)
             
         return frame  # BGR o BGRA
     except Exception as e:
@@ -62,6 +121,46 @@ def _hash_frame(frame):
     # Reducimos a 64x36 y hasheamos — muy barato computacionalmente
     small = cv2.resize(frame, (64, 36), interpolation=cv2.INTER_AREA)
     return hash(small.tobytes())
+
+def dibujar_cuadricula(frame, step=100):
+    """Dibuja una cuadrícula con coordenadas para ayudar a la IA a apuntar."""
+    h, w = frame.shape[:2]
+    color = (0, 255, 0) # Verde brillante para buen contraste
+    # Hacemos una copia para no alterar permanentemente si se pasa por referencia
+    grid_frame = frame.copy()
+    
+    for y in range(0, h, step):
+        cv2.line(grid_frame, (0, y), (w, y), color, 1)
+        cv2.putText(grid_frame, str(y), (5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, cv2.LINE_AA)
+        
+    for x in range(0, w, step):
+        cv2.line(grid_frame, (x, 0), (x, h), color, 1)
+        cv2.putText(grid_frame, str(x), (x + 5, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, cv2.LINE_AA)
+        
+    return grid_frame
+
+def obtener_coordenadas_texto(palabra_objetivo):
+    """Busca una palabra en la pantalla y devuelve sus coordenadas centrales (x, y)."""
+    frame = capturar_pantalla()
+    if frame is None:
+        return None
+        
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    config = '--oem 3 --psm 3 -l spa+eng'
+    try:
+        datos = pytesseract.image_to_data(gray, config=config, output_type=pytesseract.Output.DICT)
+    except Exception as e:
+        print(f"Error OCR al buscar coordenadas: {e}")
+        return None
+        
+    for i, texto in enumerate(datos['text']):
+        if texto.strip().lower() == palabra_objetivo.lower():
+            # Calcular el centro del bounding box
+            x = datos['left'][i] + (datos['width'][i] // 2)
+            y = datos['top'][i] + (datos['height'][i] // 2)
+            return (x, y)
+            
+    return None
 
 def preparar_vision_data(max_width=1920, forzar=False):
     """
@@ -79,9 +178,11 @@ def preparar_vision_data(max_width=1920, forzar=False):
     frame_hash = _hash_frame(frame)
     if not forzar and frame_hash == _ultimo_frame_hash:
         # Pantalla idéntica a la última captura, devolvemos caché
-        return _ultimo_resultado
+        with _lock_vision:
+            return _ultimo_resultado
 
     _ultimo_frame_hash = frame_hash
+
 
     # --- OCR con Tesseract (rápido en CPU) ---
     try:
@@ -103,18 +204,93 @@ def preparar_vision_data(max_width=1920, forzar=False):
         frame_bgr = frame
 
     # --- Preparar imagen para la IA ---
-    h, w = frame_bgr.shape[:2]
+    # Dibujamos la cuadrícula sobre la imagen para la IA, después del OCR
+    frame_con_cuadricula = dibujar_cuadricula(frame_bgr)
+    
+    h, w = frame_con_cuadricula.shape[:2]
     new_w = max_width
     new_h = int(new_w * h / w)
-    resized = cv2.resize(frame_bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    resized = cv2.resize(frame_con_cuadricula, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
     # JPEG calidad 75 — buen balance tamaño/legibilidad para el modelo
     _, buffer = cv2.imencode('.jpg', resized, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
     base64_str = base64.b64encode(buffer).decode('utf-8')
 
-    _ultimo_resultado = (texto_detectado, base64_str)
-    return _ultimo_resultado
+    with _lock_vision:
+        _ultimo_resultado = (texto_detectado, base64_str)
+        return _ultimo_resultado
 
+
+def buscar_icono_en_pantalla(ruta_icono, umbral=0.8):
+    """
+    Busca una imagen (icono o botón) en la pantalla en tiempo real usando cv2.matchTemplate.
+    Devuelve las coordenadas (x, y) del centro de la mejor coincidencia, o None.
+    """
+    try:
+        frame = capturar_pantalla()
+        if frame is None:
+            return None
+            
+        template = cv2.imread(ruta_icono, cv2.IMREAD_UNCHANGED)
+        if template is None:
+            print(f"Error: No se pudo cargar el icono '{ruta_icono}'")
+            return None
+            
+        # Asegurarnos de que ambos estén en BGR
+        if len(template.shape) == 3 and template.shape[2] == 4:
+            template = cv2.cvtColor(template, cv2.COLOR_BGRA2BGR)
+            
+        frame_bgr = frame
+        if len(frame.shape) == 3 and frame.shape[2] == 4:
+            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
+            
+        # Template Matching
+        res = cv2.matchTemplate(frame_bgr, template, cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+        
+        if max_val >= umbral:
+            h, w = template.shape[:2]
+            centro_x = max_loc[0] + w // 2
+            centro_y = max_loc[1] + h // 2
+            return (centro_x, centro_y)
+            
+        return None
+    except Exception as e:
+        print(f"Error en buscar_icono_en_pantalla: {e}")
+        return None
+
+def esperar_cambio_visual(timeout_segundos=10, sensibilidad=25, umbral_pixeles=1000):
+    """
+    Monitorea la pantalla en tiempo real a alta velocidad y se pausa hasta que
+    detecta un cambio significativo (como la carga de una web o un mensaje nuevo).
+    Retorna True si hubo cambio, False si se agotó el tiempo.
+    """
+    inicio = time.time()
+    
+    frame_base = capturar_pantalla()
+    if frame_base is None:
+        return False
+        
+    frame_base_gray = cv2.cvtColor(frame_base, cv2.COLOR_BGR2GRAY)
+    frame_base_blur = cv2.GaussianBlur(frame_base_gray, (21, 21), 0)
+    
+    while time.time() - inicio < timeout_segundos:
+        time.sleep(0.05)  # 20 FPS para no bloquear CPU
+        frame_actual = capturar_pantalla()
+        if frame_actual is None:
+            continue
+            
+        gray = cv2.cvtColor(frame_actual, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (21, 21), 0)
+        
+        diff = cv2.absdiff(frame_base_blur, blur)
+        _, thresh = cv2.threshold(diff, sensibilidad, 255, cv2.THRESH_BINARY)
+        
+        cambios = cv2.countNonZero(thresh)
+        if cambios > umbral_pixeles:
+            return True
+            
+    return False
 
 if __name__ == "__main__":
     print("Probando visión con Tesseract...")
