@@ -125,6 +125,51 @@ def get_tools():
         {
             "type": "function",
             "function": {
+                "name": "whatsapp_leer_conversacion",
+                "description": "Lee los últimos mensajes de la conversación activa en WhatsApp para obtener contexto de lo que se ha hablado.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "limite": {
+                            "type": "integer",
+                            "description": "Cantidad de mensajes recientes a leer (por defecto 5)."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "whatsapp_listar_chats_recientes",
+                "description": "Lista los contactos y chats visibles en el panel izquierdo de WhatsApp, útil para ver quién ha enviado mensajes nuevos o buscar conversaciones activas.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "whatsapp_navegar_a_seccion",
+                "description": "Cambia entre las diferentes pestañas de la aplicación WhatsApp Desktop.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "seccion": {
+                            "type": "string",
+                            "enum": ["chats", "estados", "llamadas", "comunidades"],
+                            "description": "La sección a la que se desea navegar."
+                        }
+                    },
+                    "required": ["seccion"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "excel_escribir_celda",
                 "description": "Escribe un valor directamente en una celda de Excel usando su código alfanumérico (ej. A1, B5).",
                 "parameters": {
@@ -176,6 +221,17 @@ def get_tools():
             "function": {
                 "name": "analizar_barra_tareas",
                 "description": "Detecta programáticamente todos los iconos y aplicaciones en la barra de tareas de Windows (incluyendo inicio, aplicaciones abiertas y reloj), devolviendo sus coordenadas exactas.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analizar_escritorio",
+                "description": "Detecta programáticamente todos los iconos y carpetas en el escritorio de Windows, devolviendo sus nombres y coordenadas exactas. Útil cuando no puedes encontrar un programa visualmente.",
                 "parameters": {
                     "type": "object",
                     "properties": {}

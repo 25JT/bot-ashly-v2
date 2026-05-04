@@ -6,7 +6,7 @@ import sys
 user32 = ctypes.windll.user32
 SCREEN_W = user32.GetSystemMetrics(0)
 SCREEN_H = user32.GetSystemMetrics(1)
-VISION_W = 1280
+VISION_W = 1280 # Estandarizado para que Ashly siempre vea 1280 de ancho
 SCALE_FACTOR = SCREEN_W / VISION_W
 
 def test_scaling(x, y):

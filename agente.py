@@ -27,8 +27,8 @@ load_dotenv()
 
 # ── Backends ────────────────────────────────────────────────────────────────
 LMSTUDIO_URL   = "http://localhost:1234/v1"
-OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")     # API key de https://ollama.com
-OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "gemini-3-flash-preview") # modelo Ollama por defecto
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
+OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "kimi-k2.6")
 OLLAMA_HOST    = "https://ollama.com"                 # host oficial del SDK
 
 # ── Resolución de pantalla y escalado de visión ────────────────────────────
@@ -45,8 +45,8 @@ except Exception:
 user32 = ctypes.windll.user32
 SCREEN_W = user32.GetSystemMetrics(0)   # Ancho real del monitor
 SCREEN_H = user32.GetSystemMetrics(1)   # Alto real del monitor
-VISION_W = SCREEN_W                     # Usar resolución nativa para máxima precisión
-# Factor de escala (ahora debería ser 1.0 si es nativo)
+VISION_W = 1280                             # Resolución virtual estándar para el modelo
+# Factor de escala: Relación entre la pantalla real y la resolución que ve la IA
 SCALE_FACTOR = SCREEN_W / VISION_W
 
 class Agent:
@@ -74,7 +74,8 @@ class Agent:
         
         # Calcular altura de visión para el prompt
         vision_h = int(VISION_W * SCREEN_H / SCREEN_W)
-        base_prompt += f"La imagen que ves es una captura NATIVA a {VISION_W}x{vision_h} px. Las coordenadas coinciden 1:1 con la pantalla real.\n"
+        base_prompt += f"La imagen que ves está ajustada a una resolución virtual de {VISION_W}x{vision_h} px.\n"
+        base_prompt += f"IMPORTANTE: Todas tus coordenadas (X, Y) deben basarse en este tamaño de {VISION_W}x{vision_h}. El sistema las escalará automáticamente a la pantalla real ({SCREEN_W}x{SCREEN_H}).\n"
         base_prompt += "IMPORTANTE SOBRE PRECISIÓN Y CLICKS:\n"
         base_prompt += "- La imagen tiene una CUADRÍCULA verde dibujada. Úsala como regla para leer las coordenadas (X, Y) exactas en lugar de adivinar.\n"
         base_prompt += "- Siempre que sea posible, usa la herramienta 'click_texto' para hacer click en palabras, iconos o menús con texto. Es 100% preciso.\n"
@@ -82,8 +83,10 @@ class Agent:
         base_prompt += "!!! REGLA PARA ABRIR ARCHIVOS O PROGRAMAS !!!\n"
         base_prompt += "- ANTES de abrir cualquier programa, usa 'verificar_programa_abierto' para ver si ya está ejecutándose. Si ya está abierto, usa 'controlar_ventana' con la acción 'enfocar' en lugar de abrirlo de nuevo.\n"
         base_prompt += "- Si necesitas abrir un documento, reporte o programa (ej. excel, word), usa SIEMPRE la herramienta 'abrir_archivo'. NO intentes buscar su icono visualmente en el escritorio o menú de inicio.\n"
-        base_prompt += "!!! REGLA DE LA BARRA DE TAREAS !!!\n"
-        base_prompt += "- Si no ves un programa en la pantalla, usa 'analizar_barra_tareas' para encontrar su icono en la barra de Windows y darle click para restaurarlo o cambiar de aplicación.\n"
+        base_prompt += "!!! REGLA DE LA BARRA DE TAREAS Y ESCRITORIO !!!\n"
+        base_prompt += "- Si no ves un programa en la pantalla, usa 'analizar_barra_tareas' para encontrar su icono en la barra de Windows.\n"
+        base_prompt += "- Si buscas un icono en el escritorio (ej. Imou, Spotify), usa 'analizar_escritorio' para obtener sus coordenadas exactas programáticamente. NO INTENTES ADIVINAR COORDENADAS.\n"
+        base_prompt += "- Usa los resultados de estas herramientas para mover el mouse y hacer click.\n"
         base_prompt += "!!! REGLA PARA IDENTIFICAR DÓNDE ESCRIBIR !!!\n"
         base_prompt += "- Usa 'analizar_campos_texto' para descubrir programáticamente todas las cajas de texto de la ventana actual y sus coordenadas exactas antes de escribir a ciegas.\n"
         base_prompt += "!!! REGLA PARA EXCEL !!!\n"
@@ -96,6 +99,9 @@ class Agent:
         base_prompt += "- NUNCA uses 'presionar_teclas' para escribir frases o palabras letra por letra. Es ineficiente y falla.\n"
         base_prompt += "- Para CUALQUIER texto (nombres, frases, búsquedas, mensajes), usa SIEMPRE 'escribir_texto'.\n"
         base_prompt += "- 'presionar_teclas' es SOLO para atajos (ctrl+c) o teclas especiales (enter, esc, win).\n"
+        base_prompt += "!!! PROHIBICIÓN DE ADIVINAR (EXTREMO) !!!\n"
+        base_prompt += "- NUNCA inventes coordenadas (X, Y). Si no estás segura de dónde está algo, usa 'ver_escritorio', 'analizar_escritorio', 'analizar_barra_tareas' o 'analizar_campos_texto'.\n"
+        base_prompt += "- Si 'click_texto' falla, NO intentes adivinar la posición. Informa del fallo y usa 'analizar_escritorio' o pide ayuda.\n"
         base_prompt += "Usa las herramientas correctas para cada tarea. Si una acción no produce cambios en la pantalla, NO LA REPITAS idéntica, intenta algo diferente.\n"
         base_prompt += "Puedes usar el mouse para clickear, arrastrar, hacer scroll y mover la ventana.\n"
         base_prompt += "Puedes usar el teclado para escribir, presionar teclas y atajos de teclado.\n"
@@ -201,12 +207,10 @@ class Agent:
         return f"No se encontró ningún archivo que contenga '{nombre}' en Escritorio, Documentos o Descargas."
 
     def get_backend(self):
-        """
-        Detecta qué backend usar:
+        """Detecta qué backend usar:
         - Intenta LM Studio primero (localhost:1234).
-        - Si no hay modelos cargados o no está disponible, usa Ollama cloud (SDK oficial).
-        Devuelve ("lmstudio"|"ollama"|None, model_id).
-        """
+        - Si no hay Ollama, usa Ollama cloud (SDK oficial).
+        Devuelve ("lmstudio"|"ollama"|None, model_id)."""
         # ── Intentar LM Studio ──────────────────────────────────────────────
         try:
             response = requests.get(f"{LMSTUDIO_URL}/models", timeout=5)
@@ -233,11 +237,16 @@ class Agent:
     def _request_lmstudio(self, model):
         """Llama a LM Studio via HTTP (OpenAI-compatible) con normalización agresiva para modelos locales."""
         mensajes_locales = []
+        
+        # Primero, normalizamos y limpiamos todos los mensajes
         for m in self.mensajes:
+            # FILTRADO: No enviar mensajes de error previos al modelo para evitar alucinaciones/repeticiones
+            if m.get("role") == "assistant" and m.get("content") == "Error al obtener respuesta del backend.":
+                continue
+                
             m_copy = m.copy()
             
             # 1. Normalizar contenido multimodal (listas) a texto simple
-            # Esto evita que las plantillas Jinja de LM Studio fallen al buscar un 'user query'
             if isinstance(m_copy.get("content"), list):
                 texto_plano = ""
                 for item in m_copy["content"]:
@@ -254,26 +263,53 @@ class Agent:
                 if "tool_call_id" in m_copy: del m_copy["tool_call_id"]
                 if "name" in m_copy: del m_copy["name"]
             
-            # 3. Limpiar campos incompatibles
+            # 3. Limpiar campos incompatibles y asegurar contenido no nulo
             for key in ["thought", "thought_signature", "name", "tool_call_id"]:
                 if key in m_copy: del m_copy[key]
             
+            if not m_copy.get("content"):
+                m_copy["content"] = "..." # No enviar contenido vacío
+            
             mensajes_locales.append(m_copy)
 
-        # 4. Asegurar que el último mensaje sea de rol 'user'
-        # Algunas plantillas Jinja fallan si el último mensaje es del 'assistant' o 'system'
-        if mensajes_locales and mensajes_locales[-1]["role"] != "user":
-            mensajes_locales.append({"role": "user", "content": "Continúa con la tarea."})
+        # 4. REGLA CRÍTICA PARA JINJA: Asegurar alternancia User/Assistant y empezar con User
+        # Algunos modelos (Qwen, Llama) fallan si el primer mensaje tras el sistema es del asistente
+        mensajes_finales = []
+        encontrado_primer_user = False
+        
+        for m in mensajes_locales:
+            if m["role"] == "system":
+                mensajes_finales.append(m)
+                continue
+            
+            if not encontrado_primer_user:
+                if m["role"] == "assistant":
+                    # Si el asistente habla primero, inyectamos un saludo del usuario previo
+                    mensajes_finales.append({"role": "user", "content": "Hola Ashly."})
+                encontrado_primer_user = True
+            
+            # Evitar mensajes consecutivos del mismo rol (excepto system)
+            if mensajes_finales and mensajes_finales[-1]["role"] == m["role"] and m["role"] != "system":
+                mensajes_finales[-1]["content"] += "\n" + m["content"]
+            else:
+                mensajes_finales.append(m)
+
+        # 5. Asegurar que el último mensaje sea de rol 'user'
+        if not mensajes_finales or mensajes_finales[-1]["role"] != "user":
+            mensfinales.append({"role": "user", "content": "Responde ahora."})
+
+        # Debug para el usuario
+        # print(f"DEBUG: Enviando {len(mensajes_finales)} mensajes a LM Studio")
 
         try:
             response = requests.post(
                 f"{LMSTUDIO_URL}/chat/completions",
                 json={
                     "model": model,
-                    "messages": mensajes_locales,
+                    "messages": mensajes_finales,
                     "tools": self.tools,
-                    "temperature": 0.7,
-                    "max_tokens": 2000
+                    "temperature": 0.7
+                
                 },
             )
             if response.status_code == 200:
@@ -406,6 +442,8 @@ class Agent:
             
         return result
 
+
+
     def generate_response(self, steps=0):
         """Genera una respuesta usando el modelo activo y procesa las herramientas."""
         if steps > 100:
@@ -502,7 +540,7 @@ class Agent:
                                 movermouse.MouseOperator().left_click()
                                 resultado = f"Click realizado exitosamente en el texto '{palabra}' en las coordenadas {coord}."
                             else:
-                                resultado = f"Error: No se pudo encontrar el texto '{palabra}' en la pantalla."
+                                resultado = f"Error: No se pudo encontrar el texto '{palabra}' en la pantalla usando OCR. Prueba usar la herramienta 'analizar_escritorio' si buscas un icono del escritorio, o 'analizar_barra_tareas' si buscas una aplicación abierta."
                         elif function_name == "buscar_icono_en_pantalla":
                             ruta_icono = arguments.get('ruta_icono', '')
                             coord = vision.buscar_icono_en_pantalla(ruta_icono)
@@ -560,10 +598,22 @@ class Agent:
                             resultado = whatsapp_control.whatsapp_enviar_mensaje(**arguments)
                         elif function_name == "whatsapp_obtener_ultimo_mensaje":
                             resultado = whatsapp_control.whatsapp_obtener_ultimo_mensaje()
+                        elif function_name == "whatsapp_leer_conversacion":
+                            resultado = whatsapp_control.whatsapp_leer_conversacion(**arguments)
+                        elif function_name == "whatsapp_listar_chats_recientes":
+                            resultado = whatsapp_control.whatsapp_listar_chats_recientes()
+                        elif function_name == "whatsapp_navegar_a_seccion":
+                            resultado = whatsapp_control.whatsapp_navegar_a_seccion(**arguments)
                         elif function_name == "verificar_programa_abierto":
                             resultado = win32_control.verificar_programa_abierto(**arguments)
                         elif function_name == "analizar_barra_tareas":
                             res = win32_control.analizar_barra_tareas()
+                            if isinstance(res, dict) and "elementos" in res:
+                                for e in res["elementos"]:
+                                    e["x"], e["y"] = self._desescalar_coords(e["x"], e["y"])
+                            resultado = res
+                        elif function_name == "analizar_escritorio":
+                            res = win32_control.analizar_escritorio()
                             if isinstance(res, dict) and "elementos" in res:
                                 for e in res["elementos"]:
                                     e["x"], e["y"] = self._desescalar_coords(e["x"], e["y"])
@@ -674,6 +724,7 @@ class Agent:
         import os
         import torch
         import time
+        import ctypes
         from neural_agent import AshlyNeuralNet
         from cnn_vision import VisionEncoder
         import vision
@@ -685,7 +736,7 @@ class Agent:
             return f"❌ Error: No se encontró el cerebro neuronal '{ruta_modelo}'. Primero usa 'user_tracker.py' para grabar y 'neural_memory.py' para entrenar."
 
         print(f"\n🧠 [MODO NEURONAL ACTIVADO] Objetivo: {objetivo}")
-        print("🔴 Presiona ESC en cualquier momento para detener la red neuronal y devolverle el control al LLM.")
+        print("🔴 Presiona ESC en cualquier momento para detener la red neuronal.")
 
         encoder = VisionEncoder()
         agent = AshlyNeuralNet()
@@ -709,35 +760,43 @@ class Agent:
         listener.start()
 
         pasos = 0
-        while not abortar and pasos < 30:
+        while not abortar and pasos < 50: # Aumentado a 50 pasos
             pasos += 1
-            print(f"   [Iteración {pasos}] Red Neuronal analizando pantalla...")
             
             frame = vision.capturar_pantalla()
             if frame is None:
                 print("   Error capturando pantalla.")
                 break
+            
+            # Obtener dimensiones reales del frame capturado
+            fh, fw = frame.shape[:2]
+            
+            # NORMALIZACIÓN DE ASPECTO: 
+            # Si el modelo fue entrenado en 1280x720, el encoder ya redimensiona a 224x224.
+            # Pero para que las características sean consistentes, nos aseguramos de que el aspect ratio
+            # sea similar si es necesario (opcional, MobileNet suele ser robusta).
                 
             try:
                 vector_visual = encoder.procesar_imagen_cv2(frame)
                 action_id, nx, ny = agent.predecir_accion(vector_visual)
                 
                 if action_id == 0:
-                    print("   🧠 Decisión: Esperar.")
+                    print(f"   [{pasos}] 🧠 Decisión: Esperar/Analizar...")
                 elif action_id == 1:
-                    import ctypes
-                    user32 = ctypes.windll.user32
-                    sw, sh = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+                    # Escalar coordenadas normalizadas (0-1) a píxeles reales del monitor
+                    real_x = int(round(nx * fw))
+                    real_y = int(round(ny * fh))
                     
-                    real_x = int(nx * sw)
-                    real_y = int(ny * sh)
-                    print(f"   🧠 Decisión: Clic en ({real_x}, {real_y}) [Normalizado: {nx:.3f}, {ny:.3f}].")
+                    print(f"   [{pasos}] 🧠 Decisión: Clic en ({real_x}, {real_y}) [Norm: {nx:.3f}, {ny:.3f}]")
                     mouse_op.smooth_move((real_x, real_y))
+                    time.sleep(0.1)
                     mouse_op.left_click()
                 elif action_id == 2:
-                    print("   🧠 Decisión: Usar Teclado (Acción general detectada).")
+                    print(f"   [{pasos}] 🧠 Decisión: Acción de Teclado detectada.")
+                    # Aquí se podría implementar una acción de teclado por defecto o predecir teclas
                 
-                time.sleep(2.0)
+                # Reducido sleep para mayor reactividad
+                time.sleep(0.5) 
             except Exception as e:
                 print(f"   Error en ejecución neuronal: {e}")
                 break
@@ -760,6 +819,11 @@ class Agent:
                 self.mensajes.append({"role": "user", "content": userEnvio})
                 resAshly = self.generate_response()
                 print(f"\nAshly: {resAshly}")
-                self.mensajes.append({"role": "assistant", "content": resAshly})
-                # Guardar en cada interacción para no perder nada si se cierra
-                self.guardar_estado()
+                
+                # Solo añadir al historial si NO es un error de backend para no "ensuciar" la memoria del modelo
+                if resAshly != "Error al obtener respuesta del backend.":
+                    self.mensajes.append({"role": "assistant", "content": resAshly})
+                    self.guardar_estado()
+                else:
+                    # Si hubo error, podemos avisar pero no guardarlo en el JSON persistente
+                    pass

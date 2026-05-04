@@ -53,27 +53,27 @@ class VisionMonitor:
                 with _lock_vision:
                     _ultimo_resultado = res
                 
-                # Opcional: Mostrar ventana de previsualización para el usuario
+                # Opcional: Mostrar ventana de previsualización para el usuario (Desactivado por petición del usuario)
                 # Esto es lo que hace que se sienta "tiempo real"
-                frame = capturar_pantalla()
-                if frame is not None:
-                    try:
-                        # Dibujar etiqueta de estado sin cuadrícula
-                        # Hacemos una copia para no alterar el frame original que va al cache
-                        frame_visual = frame.copy()
-                        cv2.putText(frame_visual, "ASHLY VISION - LIVE", (10, 40), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                        
-                        # Mostrar ventana
-                        cv2.imshow("Ashly Live Preview", cv2.resize(frame_visual, (960, 540)))
-                        if cv2.waitKey(1) & 0xFF == ord('q'):
-                            break
-                    except cv2.error as e:
-                        # Si falla por ser 'headless', ignoramos la previsualización pero seguimos capturando
-                        if "not implemented" in str(e):
-                            pass 
-                        else:
-                            raise e
+                # frame = capturar_pantalla()
+                # if frame is not None:
+                #     try:
+                #         # Dibujar etiqueta de estado sin cuadrícula
+                #         # Hacemos una copia para no alterar el frame original que va al cache
+                #         frame_visual = frame.copy()
+                #         cv2.putText(frame_visual, "ASHLY VISION - LIVE", (10, 40), 
+                #                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+                #         
+                #         # Mostrar ventana
+                #         cv2.imshow("Ashly Live Preview", cv2.resize(frame_visual, (960, 540)))
+                #         if cv2.waitKey(1) & 0xFF == ord('q'):
+                #             break
+                #     except cv2.error as e:
+                #         # Si falla por ser 'headless', ignoramos la previsualización pero seguimos capturando
+                #         if "not implemented" in str(e):
+                #             pass 
+                #         else:
+                #             raise e
             except Exception as e:
                 print(f"Error en monitor de visión: {e}")
             time.sleep(0.1)
@@ -146,23 +146,27 @@ def obtener_coordenadas_texto(palabra_objetivo):
         return None
         
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    config = '--oem 3 --psm 3 -l spa+eng'
-    try:
-        datos = pytesseract.image_to_data(gray, config=config, output_type=pytesseract.Output.DICT)
-    except Exception as e:
-        print(f"Error OCR al buscar coordenadas: {e}")
-        return None
-        
-    for i, texto in enumerate(datos['text']):
-        if texto.strip().lower() == palabra_objetivo.lower():
-            # Calcular el centro del bounding box
-            x = datos['left'][i] + (datos['width'][i] // 2)
-            y = datos['top'][i] + (datos['height'][i] // 2)
-            return (x, y)
+    
+    # Intentar con diferentes modos de segmentación (PSM)
+    # PSM 3: Totalmente automático (estándar)
+    # PSM 11: Texto disperso (mejor para iconos de escritorio)
+    modos_psm = ['--oem 3 --psm 3 -l spa+eng', '--oem 3 --psm 11 -l spa+eng']
+    
+    for config in modos_psm:
+        try:
+            datos = pytesseract.image_to_data(gray, config=config, output_type=pytesseract.Output.DICT)
+            for i, texto in enumerate(datos['text']):
+                if texto.strip().lower() == palabra_objetivo.lower():
+                    # Calcular el centro del bounding box
+                    x = datos['left'][i] + (datos['width'][i] // 2)
+                    y = datos['top'][i] + (datos['height'][i] // 2)
+                    return (x, y)
+        except Exception as e:
+            print(f"Error OCR con config {config}: {e}")
             
     return None
 
-def preparar_vision_data(max_width=1920, forzar=False):
+def preparar_vision_data(max_width=1280, forzar=False):
     """
     Captura, OCR con Tesseract y prepara imagen en Base64.
     Si la pantalla no cambió y no se fuerza, devuelve el resultado cacheado.

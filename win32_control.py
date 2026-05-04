@@ -178,6 +178,49 @@ def analizar_barra_tareas() -> dict:
         return {"error": f"Error al analizar barra de tareas: {str(e)}"}
 
 
+def analizar_escritorio() -> dict:
+    """
+    Detecta iconos y elementos en el escritorio de Windows usando UIAutomation.
+    Útil para encontrar programas que no están en la barra de tareas.
+    """
+    try:
+        # El escritorio puede tener varios nombres dependiendo del idioma
+        nombres_escritorio = ['Desktop', 'Escritorio']
+        desktop_list = None
+        
+        for nombre in nombres_escritorio:
+            desktop_list = auto.ListControl(Name=nombre)
+            if desktop_list.Exists(0):
+                break
+        
+        if not desktop_list or not desktop_list.Exists(0):
+            # Fallback por clase
+            desktop_list = auto.ListControl(ClassName='SysListView32')
+            
+        if not desktop_list.Exists(0):
+            return {"error": "No se pudo localizar el contenedor de iconos del escritorio."}
+            
+        elementos = []
+        for item in desktop_list.GetChildren():
+            nombre = item.Name
+            if nombre:
+                rect = item.BoundingRectangle
+                if rect.width() > 0:
+                    elementos.append({
+                        "nombre": nombre,
+                        "x": (rect.left + rect.right) // 2,
+                        "y": (rect.top + rect.bottom) // 2
+                    })
+        
+        return {
+            "escritorio_encontrado": True,
+            "cantidad_elementos": len(elementos),
+            "elementos": elementos
+        }
+    except Exception as e:
+        return {"error": f"Error al analizar escritorio: {str(e)}"}
+
+
 def mover_redimensionar_ventana(titulo: str, x: int, y: int, ancho: int, alto: int) -> str:
     """Mueve y redimensiona una ventana a la posición y tamaño especificados."""
     hwnd = _encontrar_ventana(titulo)

@@ -1,5 +1,5 @@
 {
-    "recompensas": 45,
+    "recompensas": 50,
     "conocimientos": [
         "Instrucciones Spotify: 1. Click en la lupa para buscar. 2. Escribir y Enter. 3. Para reproducir, poner el cursor sobre el elemento hasta que aparezca el botón PLAY (verde con negro) y clickearlo. 4. Controles inferiores: Botón 'Pausa' = Sonando, Botón 'Play' = Pausado. 5. Lado izquierdo de la pantalla: DJ Livi (bola azul/verde) algunas veces puede decir solo DJ, y Mis canciones que me gustan (corazón).",
         "Búsqueda en Spotify: Para DJ Livi, el botón es una bola azul con fondo verde que dice \"DJ Click to start listening\" . Hacer doble click para reproducir.",
@@ -14,6 +14,16 @@
         "Microsoft Excel: Para combinar y centrar celdas, seleccionar el rango arrastrando el mouse y luego clickear el botón 'Combinar y centrar'.",
         "Microsoft Excel: Al trabajar con tablas, validar visualmente los formatos aplicados antes de dar la tarea por terminada.",
         "Visión: El punto rojo con borde blanco en las capturas de pantalla indica la posición actual del mouse.",
-        "El navegador preferido del usuario es Brave. Me gusta verme como una asistente virtual moderna, sexy e inteligente, con un toque cibernético pero humano."
+        "El navegador preferido del usuario es Brave. Me gusta verme como una asistente virtual moderna, sexy e inteligente, con un toque cibernético pero humano.",
+        "WhatsApp: Para buscar un contacto o número rápidamente, usar el atajo 'ctrl+f', escribir el nombre/número y presionar 'Enter'.",
+        "WhatsApp: El envío de mensajes en la versión Desktop se confirma presionando la tecla 'Enter' después de escribir el texto.",
+        "Navegación: En Brave, usar 'ctrl+t' es la forma más rápida de abrir una pestaña nueva para realizar una búsqueda.",
+        "Interacción con Clientes: Mantener un tono cálido y profesional, usar el nombre del cliente, estructurar la información con viñetas y ser siempre clara sobre los próximos pasos.",
+        "Apertura de programas: Al abrir aplicaciones desde el escritorio o el explorador de archivos, se debe usar siempre el doble click izquierdo para asegurar su ejecución.",
+        "Localización dinámica: Si un icono cambia de lugar, la mejor estrategia es usar 'ver_escritorio' seguido de 'click_texto' (buscando el nombre) o 'buscar_icono_en_pantalla' para obtener coordenadas actualizadas.",
+        "Verificación de contexto: Siempre validar visualmente que el elemento clickeado es el correcto (ej. no confundir texto en la consola con iconos del escritorio) y usar 'verificar_programa_abierto' antes de intentar lanzarlo de nuevo.",
+        "Ruta: El usuario tiene proyectos o referencias relacionadas con 'visionpy', 'agente py' y 'observadorpy'.",
+        "Conocimiento Adquirido: El usuario trabaja en un entorno de desarrollo de código, utilizando scripts y librerías relacionadas con Python, visión por computadora (`visionpy`), y conceptos de agentes de IA.",
+        "Preferencia: El usuario muestra interés en géneros musicales como EDM, Reggaeton y Pop, con estaciones recomendadas que incluyen Maroon 5, Tiésto, Salsa, Ragueton, Feisey y Resonance."
     ]
 }
