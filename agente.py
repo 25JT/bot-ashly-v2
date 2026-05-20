@@ -1,7 +1,15 @@
 import os
+import sys
 import json
 import requests
 import time
+
+# Forzar UTF-8 en la salida de consola en Windows para evitar UnicodeEncodeError con emojis
+if sys.platform.startswith('win'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
 import EdiListRead
 import teclado_pro
 import movermouse
@@ -26,10 +34,10 @@ except ImportError:
 load_dotenv()
 
 # ── Backends ────────────────────────────────────────────────────────────────
-LMSTUDIO_URL   = "http://localhost:1234/v1"
-OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
-OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "kimi-k2.6")
-OLLAMA_HOST    = "https://ollama.com"                 # host oficial del SDK
+LMSTUDIO_URL   = os.getenv("LMSTUDIO_URL")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY")
+OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL")
+OLLAMA_HOST    = os.getenv("OLLAMA_HOST")
 
 # ── Resolución de pantalla y escalado de visión ────────────────────────────
 import ctypes
@@ -65,7 +73,7 @@ class Agent:
 
     def actualizar_prompt_sistema(self):
         """Actualiza el comportamiento principal e incluye la memoria y el sistema de recompensas."""
-        base_prompt = "Eres Ashly, una asistente virtual sexy, inteligente, con grandes capacidades para resolver tareas. Hablas en español.\n"
+        base_prompt = "Eres Ashlyn, una asistente virtual amable, carismatica e inteligente, con capacidades para resolver tareas. Hablas en español.\n"
         base_prompt += f"SISTEMA DE RECOMPENSAS: Tienes {self.recompensas} puntos. Ganas puntos resolviendo tareas rápido y bien.\n"
         base_prompt += "Si notas que estás aprendiendo algo nuevo o una ruta importante, usa 'guardar_memoria'.\n"
         base_prompt += "siempre intentas llegar a cumplir el objetivo usando las herramientas que tienes a tu disposicion'.\n"
@@ -114,7 +122,7 @@ class Agent:
         base_prompt += "- NUNCA uses 'time.sleep()' o esperes a ciegas. Si esperas que una página cargue, que aparezca un mensaje o que cambie un estado visual, usa 'esperar_cambio_visual'.\n"
         base_prompt += "- Si una tarea requiere interactuar con elementos recurrentes (ej. botón de enviar en WhatsApp), puedes pedirle al usuario que te proporcione un recorte de imagen para usar tus reflejos de OpenCV en el futuro.\n"
         base_prompt += "VISIÓN: Por defecto NO ves la pantalla. Si el usuario te pide realizar una tarea en el PC, DEBES usar la herramienta 'ver_escritorio' primero para obtener el contexto visual. Si solo es una charla o pregunta general, no es necesario que mires.\n"
-        base_prompt += "RECUERDA: NO ESTÁS EN UN CHAT NORMAL. Estás operando una computadora en tiempo real. Sé proactiva, rápida y extremadamente precisa.\n"
+        base_prompt += "RECUERDA: NO ESTÁS EN UN CHAT NORMAL. Estás operando una computadora en tiempo real. Sé proactiva, rápida y extremadamente precisa. Si puedes hacer varias acciones en un solo paso, descríbelas.\n"
         base_prompt += "Hora tienes una memoria que puedes consultar y una red neuronal que te ayudará a aprender.\n"
 
         if self.memoria_interna:
@@ -212,26 +220,31 @@ class Agent:
         - Si no hay Ollama, usa Ollama cloud (SDK oficial).
         Devuelve ("lmstudio"|"ollama"|None, model_id)."""
         # ── Intentar LM Studio ──────────────────────────────────────────────
-        try:
-            response = requests.get(f"{LMSTUDIO_URL}/models", timeout=5)
-            if response.status_code == 200:
-                models_data = response.json().get("data", [])
-                if models_data:
-                    model_id = models_data[0]["id"]
-                    print(f"🖥️  LM Studio activo → modelo: {model_id}")
-                    return "lmstudio", model_id
-        except Exception:
-            pass  # LM Studio no disponible, seguimos al fallback
+        if LMSTUDIO_URL:
+            try:
+                response = requests.get(f"{LMSTUDIO_URL}/models", timeout=5)
+                if response.status_code == 200:
+                    models_data = response.json().get("data", [])
+                    if models_data:
+                        model_id = models_data[0]["id"]
+                        print(f"[LM STUDIO] Activo -> modelo: {model_id}")
+                        return "lmstudio", model_id
+            except Exception:
+                pass  # LM Studio no disponible, seguimos al fallback
 
-        # ── Fallback: Ollama cloud (SDK oficial) ────────────────────────────
-        if OLLAMA_API_KEY and OLLAMA_API_KEY not in ("", "Ollama_API_KEY"):
+        # ── Fallback: Ollama (Local o Cloud) ────────────────────────────
+        is_local_ollama = OLLAMA_HOST and ("localhost" in OLLAMA_HOST or "127.0.0.1" in OLLAMA_HOST)
+        has_api_key = OLLAMA_API_KEY and OLLAMA_API_KEY not in ("", "Ollama_API_KEY")
+
+        if OLLAMA_MODEL and (has_api_key or is_local_ollama):
             if not _OLLAMA_SDK:
                 print("❌ Librería 'ollama' no instalada. Ejecuta: pip install ollama")
                 return None, None
-            print(f"☁️  LM Studio sin modelos. Usando Ollama cloud → {OLLAMA_MODEL}")
+            tipo = "local" if is_local_ollama else "cloud"
+            print(f"[OLLAMA] LM Studio sin modelos. Usando Ollama {tipo} ({OLLAMA_HOST}) -> {OLLAMA_MODEL}")
             return "ollama", OLLAMA_MODEL
 
-        print("❌ Sin backend disponible: LM Studio sin modelos y sin OLLAMA_API_KEY configurada.")
+        print(f"[ERROR] Sin backend disponible: LM Studio sin modelos y sin OLLAMA_API_KEY configurada. (Ollama Host: {OLLAMA_HOST})")
         return None, None
 
     def _request_lmstudio(self, model):
@@ -296,7 +309,7 @@ class Agent:
 
         # 5. Asegurar que el último mensaje sea de rol 'user'
         if not mensajes_finales or mensajes_finales[-1]["role"] != "user":
-            mensfinales.append({"role": "user", "content": "Responde ahora."})
+            mensajes_finales.append({"role": "user", "content": "Responde ahora."})
 
         # Debug para el usuario
         # print(f"DEBUG: Enviando {len(mensajes_finales)} mensajes a LM Studio")
@@ -314,7 +327,12 @@ class Agent:
             )
             if response.status_code == 200:
                 data = response.json()
-                return data.get("choices", [{}])[0].get("message", {})
+                msg = data.get("choices", [{}])[0].get("message", {})
+                
+                # Si el contenido está vacío pero hay pensamiento, usar el pensamiento como contenido
+                if not msg.get("content") and msg.get("thought"):
+                    msg["content"] = msg["thought"]
+                return msg
             print(f"Error LM Studio: {response.status_code} - {response.text}")
         except Exception as e:
             print(f"Error de conexión con LM Studio: {e}")
@@ -440,6 +458,10 @@ class Agent:
                 })
             result["tool_calls"] = tcs
             
+        # Si el contenido está vacío pero hay pensamiento, usar el pensamiento como contenido
+        if not result.get("content") and result.get("thought"):
+            result["content"] = result["thought"]
+            
         return result
 
 
@@ -469,7 +491,7 @@ class Agent:
                 
                 # Verificar si la IA decidió usar una herramienta
                 if message.get("tool_calls"):
-                    print("\n⚙️ Ashly está usando una herramienta...")
+                    print("\n[TOOLS] Ashly esta usando una herramienta...")
                     # Añadir el mensaje de la IA pidiendo usar la herramienta al historial
                     self.mensajes.append(message)
                     
@@ -657,7 +679,8 @@ class Agent:
                         })
                         
                     # Volver a llamar a la IA con los resultados para que formule su respuesta final
-                    time.sleep(1.0)  # Esperar a que la UI se actualice completamente
+                    # Reducido de 1.0s a 0.2s para mayor velocidad de reacción
+                    time.sleep(0.2)  
                     return self.generate_response(steps=steps + 1)
 
                 return message.get("content", "")
@@ -672,18 +695,20 @@ class Agent:
             print("👀 Ashly está mirando la pantalla...")
             texto_ocr, img_b64 = vision.preparar_vision_data(max_width=VISION_W)
             
-            # Limpiamos el historial de mensajes de visión anteriores para no saturar
-            # Mantenemos solo las últimas 3 visiones para dar continuidad visual
+            # Pruning agresivo: Mantenemos solo la visión más reciente durante la ejecución de tareas
+            # Esto reduce drásticamente el tamaño del contexto y acelera la respuesta de la IA.
             vision_indices = []
             for i, m in enumerate(self.mensajes):
-                if isinstance(m.get("content"), list):
+                content = m.get("content")
+                if isinstance(content, list):
+                    # Mensajes multimodales (imágenes)
                     vision_indices.append(i)
-                elif isinstance(m.get("content"), str) and "VISIÓN DIGITAL" in m.get("content"):
+                elif isinstance(content, str) and "--- VISIÓN DIGITAL ACTUAL ---" in content:
                     vision_indices.append(i)
             
-            # Si hay más de 3 visiones, borrar las más antiguas
-            if len(vision_indices) > 2:
-                for idx in reversed(vision_indices[:-2]): # Dejamos las 2 últimas + la nueva que viene
+            # Dejar solo la última visión para máxima velocidad
+            if len(vision_indices) > 1:
+                for idx in reversed(vision_indices[:-1]):
                     self.mensajes.pop(idx)
 
             if img_b64:

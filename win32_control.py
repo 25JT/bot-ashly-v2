@@ -25,8 +25,8 @@ def analizar_ventana_activa() -> dict:
         titulo = window.Name
         campos = []
         
-        # Recorrer controles hijos hasta cierta profundidad para no bloquearse
-        for control, depth in auto.WalkControl(window, includeTop=False, maxDepth=7):
+        # Recorrer controles hijos hasta cierta profundidad (reducido a 5 para velocidad)
+        for control, depth in auto.WalkControl(window, includeTop=False, maxDepth=5):
             try:
                 # Controles editables típicos
                 if control.ControlType in [auto.ControlType.EditControl, auto.ControlType.DocumentControl, auto.ControlType.ComboBoxControl]:
@@ -154,8 +154,8 @@ def analizar_barra_tareas() -> dict:
             return {"error": "No se pudo localizar la barra de tareas de Windows."}
             
         elementos = []
-        # Caminar por los hijos de la barra de tareas
-        for control, depth in auto.WalkControl(taskbar, includeTop=False, maxDepth=4):
+        # Caminar por los hijos de la barra de tareas (reducido a 3 para velocidad)
+        for control, depth in auto.WalkControl(taskbar, includeTop=False, maxDepth=3):
             # Buscamos botones (aplicaciones ancladas o abiertas) e iconos de bandeja
             if control.ControlType in [auto.ControlType.ButtonControl, auto.ControlType.MenuItemControl]:
                 nombre = control.Name

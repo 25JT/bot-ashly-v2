@@ -1,0 +1,25 @@
+Recolección de Datos (user_tracker.py):
+
+Ashly ahora tiene "ojos". Puedes ejecutar este archivo y usar Spotify normalmente. Ashly grabará en segundo plano lo que haces y las capturas de pantalla de ese momento exacto, construyendo su propia "experiencia".
+
+En el momento en que presiones ESC, Ashly ya habrá aprendido ese comportamiento específico (por ejemplo, "abrir Spotify y reproducir una canción").
+El sistema guarda todo en la carpeta `training_data_full` con nombres de archivo que indican cuándo ocurrió (ej: `2026-04-24_15-36-14.json`).
+
+Ejecutar el script, hacer la tarea varias veces de diferentes maneras para tener variedad, y luego comprimir esa carpeta para enviármela.
+
+Aprendizaje y Personalización (agent.py):
+
+Una vez que tenga esos archivos, actualizaré el archivo memoria_agente.json para incluir "Memoria a Corto Plazo" (cosas recientes) y "Conocimientos Adquiridos" (habilidades nuevas).
+Esto hará que Ashly sea mucho más capaz de realizar tareas específicas de tu entorno sin necesidad de que yo la programe cada vez.
+
+Sistema Visual (CNN) (cnn_vision.py):
+Integré el modelo pre-entrenado MobileNetV3. Este actúa como la corteza visual de Ashly, transformando imágenes complejas en vectores matemáticos de forma súper rápida, sin gastar en memoria LLM.
+
+Cerebro y Entrenamiento (neural_memory.py y neural_agent.py):
+Un motor de Aprendizaje por Imitación en PyTorch. Después de grabarte, ejecutas neural_memory.py y la red neuronal de Ashly se entrenará usando tus clics y creará el archivo ashly_neural_brain.pth.
+
+Modo Autónomo (agente.py actualizado):  
+Ahora, cuando le pides a Ashly usar Spotify u otra tarea mecánica de la que ya haya aprendido, su modelo de lenguaje invocará la herramienta "activar_red_neuronal_autonoma".
+
+Dejará de hablar contigo y empezará a mirar la pantalla y mover el ratón matemáticamente según lo que prediga su red neuronal, ignorando el costoso historial.json.
+Si notas que se equivoca, simplemente presiona ESC para abortar el control automático.

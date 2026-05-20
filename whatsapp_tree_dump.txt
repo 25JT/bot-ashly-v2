@@ -1,0 +1,103 @@
+WindowControl | Name: WhatsApp | Class: WinUIDesktopWin32WindowClass
+  PaneControl | Name: Non Client Input Sink Window | Class: InputNonClientPointerSource
+  PaneControl | Name: AppWindow Custom Title Bar | Class: ReunionWindowingCaptionControls
+    ButtonControl | Name: Minimize | Class: 
+    ButtonControl | Name: Restore | Class: 
+    ButtonControl | Name: Close | Class: 
+  PaneControl | Name:  | Class: Microsoft.UI.Content.DesktopChildSiteBridge
+    PaneControl | Name:  | Class: Chrome_WidgetWin_0
+      PaneControl | Name: (1) WhatsApp Business | Class: Chrome_WidgetWin_1
+        PaneControl | Name:  | Class: Intermediate D3D Window
+        PaneControl | Name: (1) WhatsApp Business: contenido web | Class: BrowserRootView
+          PaneControl | Name:  | Class: NonClientView
+            PaneControl | Name:  | Class: EmbeddedBrowserTabRootView
+            PaneControl | Name:  | Class: EmbeddedBrowserFrameView
+              TextControl | Name: Sin título | Class: Label
+              PaneControl | Name:  | Class: BrowserCaptionButtonContainer
+                ButtonControl | Name: Minimizar | Class: EdgeWindowsCaptionButton
+                ButtonControl | Name: Maximizar | Class: EdgeWindowsCaptionButton
+                ButtonControl | Name: Restaurar | Class: EdgeWindowsCaptionButton
+                ButtonControl | Name: Cerrar | Class: EdgeWindowsCaptionButton
+              PaneControl | Name:  | Class: BrowserView
+                PaneControl | Name:  | Class: MainBackgroundRegionView
+                PaneControl | Name:  | Class: TopContainerView
+                  ToolBarControl | Name: Barra de la aplicación | Class: EdgeToolbarView
+                    GroupControl | Name:  | Class: LocationBarView
+                  PaneControl | Name:  | Class: ReadAloudBarView
+                  PaneControl | Name:  | Class: ContentsSeparator
+                GroupControl | Name: Contenedor de la barra de información | Class: InfoBarContainerView
+                PaneControl | Name:  | Class: SidebarContentsSplitView
+                  PaneControl | Name:  | Class: SidebarContentsSplitView
+                    PaneControl | Name:  | Class: View
+                    PaneControl | Name: Panel lateral | Class: SidePaneRootContainer
+                  PaneControl | Name: Panel lateral | Class: HubWebViewContainerView
+                    DocumentControl | Name:  | Class: HubWebView
+                    PaneControl | Name:  | Class: SidePaneRootContainerBackgroundAndBorderView
+                PaneControl | Name:  | Class: ShadowOverlayView
+                  PaneControl | Name:  | Class: CornerView
+                  PaneControl | Name:  | Class: CornerView
+                  PaneControl | Name:  | Class: CornerView
+                  PaneControl | Name:  | Class: CornerView
+                  PaneControl | Name:  | Class: ShadowBox
+                PaneControl | Name:  | Class: SidePanel
+                  PaneControl | Name:  | Class: ContentParentView
+                  SliderControl | Name: Controlador de tamaño del panel lateral (arrastrable) | Class: SidePanelResizeArea
+                TabControl | Name: Barra de pestañas | Class: EdgeTabStripRegionView
+                  PaneControl | Name:  | Class: EdgeTabStrip
+                    PaneControl | Name:  | Class: EdgeTabContainerImpl
+                    PaneControl | Name:  | Class: TabStrip::EdgeTabDragContextImpl
+                  ButtonControl | Name: Nueva pestaña | Class: EdgeNewTabButton
+                  PaneControl | Name:  | Class: FrameGrabHandle
+                PaneControl | Name:  | Class: View
+                PaneControl | Name:  | Class: ScrimView
+                PaneControl | Name:  | Class: WindowedFindBarFocusProxyView
+                PaneControl | Name:  | Class: EmbeddedBrowserDownloadView
+            PaneControl | Name:  | Class: TopContainerOverlayView
+    PaneControl | Name:  | Class: InputSiteWindowClass
+      PaneControl | Name:  | Class: Microsoft.UI.Xaml.Controls.WebView2
+        PaneControl | Name: (1) WhatsApp Business | Class: Chrome_WidgetWin_1
+          PaneControl | Name:  | Class: Intermediate D3D Window
+          PaneControl | Name: (1) WhatsApp Business: contenido web | Class: BrowserRootView
+            PaneControl | Name:  | Class: NonClientView
+              PaneControl | Name:  | Class: EmbeddedBrowserTabRootView
+              PaneControl | Name:  | Class: EmbeddedBrowserFrameView
+                TextControl | Name: Sin título | Class: Label
+                PaneControl | Name:  | Class: BrowserCaptionButtonContainer
+                  ButtonControl | Name: Minimizar | Class: EdgeWindowsCaptionButton
+                  ButtonControl | Name: Maximizar | Class: EdgeWindowsCaptionButton
+                  ButtonControl | Name: Restaurar | Class: EdgeWindowsCaptionButton
+                  ButtonControl | Name: Cerrar | Class: EdgeWindowsCaptionButton
+                PaneControl | Name:  | Class: BrowserView
+                  PaneControl | Name:  | Class: MainBackgroundRegionView
+                  PaneControl | Name:  | Class: TopContainerView
+                    ToolBarControl | Name: Barra de la aplicación | Class: EdgeToolbarView
+                    PaneControl | Name:  | Class: ReadAloudBarView
+                    PaneControl | Name:  | Class: ContentsSeparator
+                  GroupControl | Name: Contenedor de la barra de información | Class: InfoBarContainerView
+                  PaneControl | Name:  | Class: SidebarContentsSplitView
+                    PaneControl | Name:  | Class: SidebarContentsSplitView
+                    PaneControl | Name: Panel lateral | Class: HubWebViewContainerView
+                  PaneControl | Name:  | Class: ShadowOverlayView
+                    PaneControl | Name:  | Class: CornerView
+                    PaneControl | Name:  | Class: CornerView
+                    PaneControl | Name:  | Class: CornerView
+                    PaneControl | Name:  | Class: CornerView
+                    PaneControl | Name:  | Class: ShadowBox
+                  PaneControl | Name:  | Class: SidePanel
+                    PaneControl | Name:  | Class: ContentParentView
+                    SliderControl | Name: Controlador de tamaño del panel lateral (arrastrable) | Class: SidePanelResizeArea
+                  TabControl | Name: Barra de pestañas | Class: EdgeTabStripRegionView
+                    PaneControl | Name:  | Class: EdgeTabStrip
+                    ButtonControl | Name: Nueva pestaña | Class: EdgeNewTabButton
+                    PaneControl | Name:  | Class: FrameGrabHandle
+                  PaneControl | Name:  | Class: View
+                  PaneControl | Name:  | Class: ScrimView
+                  PaneControl | Name:  | Class: WindowedFindBarFocusProxyView
+                  PaneControl | Name:  | Class: EmbeddedBrowserDownloadView
+              PaneControl | Name:  | Class: TopContainerOverlayView
+  TitleBarControl | Name:  | Class: 
+    MenuBarControl | Name: Sistema | Class: 
+      MenuItemControl | Name: Sistema | Class: 
+    ButtonControl | Name: Minimizar | Class: 
+    ButtonControl | Name: Restaurar | Class: 
+    ButtonControl | Name: Cerrar | Class: 

@@ -23,6 +23,7 @@ import threading
 camera = None
 _ultimo_frame_hash = None
 _ultimo_resultado = (None, None)
+_hash_del_cache = None 
 _monitor_activo = False
 _hilo_monitor = None
 _lock_vision = threading.Lock()
@@ -35,48 +36,31 @@ class VisionMonitor:
             _monitor_activo = True
             _hilo_monitor = threading.Thread(target=VisionMonitor._loop, daemon=True)
             _hilo_monitor.start()
-            print("👁️  Visión en tiempo real iniciada.")
+            print("[VISION] Vision en tiempo real iniciada.")
 
     @staticmethod
     def detener():
         global _monitor_activo
         _monitor_activo = False
-        print("👁️  Visión en tiempo real detenida.")
+        print("[VISION] Vision en tiempo real detenida.")
 
     @staticmethod
     def _loop():
         global _ultimo_resultado, _ultimo_frame_hash
         while _monitor_activo:
             try:
-                # Captura rápida a 10 FPS (aprox) para mantener el cache caliente
-                res = preparar_vision_data(forzar=True)
-                with _lock_vision:
-                    _ultimo_resultado = res
-                
-                # Opcional: Mostrar ventana de previsualización para el usuario (Desactivado por petición del usuario)
-                # Esto es lo que hace que se sienta "tiempo real"
-                # frame = capturar_pantalla()
-                # if frame is not None:
-                #     try:
-                #         # Dibujar etiqueta de estado sin cuadrícula
-                #         # Hacemos una copia para no alterar el frame original que va al cache
-                #         frame_visual = frame.copy()
-                #         cv2.putText(frame_visual, "ASHLY VISION - LIVE", (10, 40), 
-                #                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                #         
-                #         # Mostrar ventana
-                #         cv2.imshow("Ashly Live Preview", cv2.resize(frame_visual, (960, 540)))
-                #         if cv2.waitKey(1) & 0xFF == ord('q'):
-                #             break
-                #     except cv2.error as e:
-                #         # Si falla por ser 'headless', ignoramos la previsualización pero seguimos capturando
-                #         if "not implemented" in str(e):
-                #             pass 
-                #         else:
-                #             raise e
+                # Captura rápida para detectar cambios, pero SIN forzar OCR cada vez.
+                # Esto reduce drásticamente el uso de CPU.
+                frame = capturar_pantalla()
+                if frame is not None:
+                    frame_hash = _hash_frame(frame)
+                    if frame_hash != _ultimo_frame_hash:
+                        # Si algo cambió, actualizamos solo el hash. 
+                        # El procesamiento pesado (OCR/Base64) se hará bajo demanda.
+                        _ultimo_frame_hash = frame_hash
             except Exception as e:
                 print(f"Error en monitor de visión: {e}")
-            time.sleep(0.1)
+            time.sleep(0.15) # Un poco más lento para liberar CPU
         try:
             cv2.destroyAllWindows()
         except:
@@ -180,15 +164,15 @@ def preparar_vision_data(max_width=1280, forzar=False):
 
     # --- Detección de cambio ---
     frame_hash = _hash_frame(frame)
-    if not forzar and frame_hash == _ultimo_frame_hash:
-        # Pantalla idéntica a la última captura, devolvemos caché
+    if not forzar and frame_hash == _hash_del_cache and _ultimo_resultado[1] is not None:
+        # El frame actual es igual al que usamos para el último OCR, devolvemos caché
         with _lock_vision:
             return _ultimo_resultado
 
-    _ultimo_frame_hash = frame_hash
+    # Si llegamos aquí, es porque forzamos o el frame cambió desde el último OCR
+    _hash_del_cache = frame_hash
 
-
-    # --- OCR con Tesseract (rápido en CPU) ---
+    # --- OCR con Tesseract (Pesado, solo si es necesario) ---
     try:
         # Convertimos a RGB para PIL/Tesseract
         if frame.shape[2] == 4:  # BGRA → BGR
