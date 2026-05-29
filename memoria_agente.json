@@ -1,25 +1,4 @@
 {
-    "recompensas": 50,
-    "conocimientos": [
-        "Instrucciones Spotify: 1. Click en la lupa para buscar. 2. Escribir y Enter. 3. Para reproducir, poner el cursor sobre el elemento hasta que aparezca el botón PLAY y hacer click. 4. Controles inferiores: Botón 'Pausa' = Sonando, Botón 'Play' = Pausado.",
-        "Búsqueda en Spotify: El botón de DJ puede aparecer como una bola de color con texto 'Click to start listening'. Hacer doble click para reproducir.",
-        "Controles de reproducción Spotify: A la derecha del botón de Play/Pausa está el botón de Siguiente. A la izquierda está el botón Anterior (hacer doble click para regresar la canción).",
-        "Explorador de Archivos: Si el comando directo falla, usar la búsqueda del sistema, escribir 'explorador de archivos' y presionar enter.",
-        "En Spotify, las playlists principales suelen encontrarse en el panel del lado izquierdo de la pantalla.",
-        "Para arrastrar una ventana, posicionar el cursor en la barra superior y realizar el arrastre desde allí.",
-        "Siempre validar que una tarea se completó verificando visualmente el resultado antes de confirmarlo.",
-        "Microsoft Word: Usar ctrl+b para abrir el buscador y localizar texto rápidamente.",
-        "Microsoft Word: Al presionar Enter al final de una línea con viñeta, se crea automáticamente la siguiente.",
-        "Eficiencia de Teclado: Usar escritura directa para texto y combinaciones de teclas solo para atajos.",
-        "Microsoft Excel: Para combinar y centrar celdas, seleccionar el rango y luego usar la opción 'Combinar y centrar'.",
-        "Microsoft Excel: Validar visualmente los formatos aplicados antes de finalizar.",
-        "Visión: Un punto indicador en pantalla puede señalar la posición actual del cursor.",
-        "WhatsApp: Para buscar un contacto o número rápidamente, usar 'ctrl+f', escribir y presionar 'Enter'.",
-        "WhatsApp: El envío de mensajes se confirma presionando la tecla 'Enter'.",
-        "Navegación: Usar 'ctrl+t' para abrir una nueva pestaña rápidamente.",
-        "Interacción con Clientes: Mantener un tono cálido y profesional, estructurar la información con viñetas y ser claro en los próximos pasos.",
-        "Apertura de programas: Usar doble click para ejecutar aplicaciones desde el escritorio o explorador.",
-        "Localización dinámica: Si un icono cambia de lugar, usar herramientas visuales o búsqueda para ubicarlo nuevamente.",
-        "Verificación de contexto: Confirmar que el elemento seleccionado es el correcto antes de ejecutar acciones."
-    ]
+    "recompensas": 0,
+    "conocimientos": []
 }

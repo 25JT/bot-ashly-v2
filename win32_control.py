@@ -91,8 +91,14 @@ def controlar_ventana(titulo: str, accion: str) -> str:
         return f"Ventana '{titulo}' cerrada."
     elif accion == "enfocar":
         try:
-            # Asegurarse de que no esté minimizada
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            # Asegurarse de que no esté minimizada, conservando el estado maximizado original si aplica
+            if win32gui.IsIconic(hwnd):
+                placement = win32gui.GetWindowPlacement(hwnd)
+                wpf_restore = getattr(win32con, 'WPF_RESTORETOMAXIMIZED', 2)
+                if placement[0] & wpf_restore:
+                    win32gui.ShowWindow(hwnd, win32con.SW_SHOWMAXIMIZED)
+                else:
+                    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             # Truco para forzar el foco: enviar una pulsación de tecla virtual (Alt)
             # Esto permite que Windows nos dé permiso para cambiar la ventana de primer plano
             win32api.keybd_event(win32con.VK_MENU, 0, 0, 0) # Alt presionado

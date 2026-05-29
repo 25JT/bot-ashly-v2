@@ -706,5 +706,17 @@ def get_tools():
                     "required": ["objetivo"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "whatsapp_detectar_nuevos_mensajes",
+                "description": "Escanea los chats activos de WhatsApp Desktop en el panel izquierdo buscando mensajes no leídos. Si los hay, abre el chat, lee la conversación y los devuelve.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
         }
     ]

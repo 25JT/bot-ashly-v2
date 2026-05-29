@@ -61,8 +61,8 @@ def observar_y_aprender():
     while True:
         try:
             # 1. Capturar pantalla y OCR
-            # Reducimos el ancho a 800 para que el modelo local procese más rápido y no dé timeout
-            texto_ocr, imagen_b64 = vision.preparar_vision_data(max_width=800, forzar=True)
+            # Usamos la misma resolución que el modo principal para mantener consistencia visual
+            texto_ocr, imagen_b64 = vision.preparar_vision_data(max_width=1440, forzar=True)
             
             # Intentar identificar la ventana principal para dar contexto
             contexto_ventana = "Escritorio / Desconocido"
